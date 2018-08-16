@@ -34,14 +34,17 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName = "cohortData", objectClass = "data.table",
-                 desc = "tree-level data by pixel group",
+                 desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
+                  succession time step",
                  sourceURL = NA),
     expectsInput(objectName = "lastReg", objectClass = "numeric",
                  desc = "time at last regeneration", sourceURL = NA),
-    expectsInput(objectName = "species", objectClass = "data.table", 
-                 desc = "species attribute table", sourceURL = NA),
+    expectsInput(objectName = "species", objectClass = "data.table",
+                 desc = "a table that has species traits such as longevity...",
+                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),
     expectsInput(objectName = "speciesEcoregion", objectClass = "data.table",
-                 desc = "species ecoregion data", sourceURL = NA)
+                 desc = "table defining the maxANPP, maxB and SEP, 
+                 which can change with both ecoregion and simulation time")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -163,28 +166,6 @@ mortalityAndGrowth <- function(sim) {
   
 }
 
-
-.inputObjects = function(sim) {
-  # Any code written here will be run during the simInit for the purpose of creating
-  # any objects required by this module and identified in the inputObjects element of defineModule.
-  # This is useful if there is something required before simulation to produce the module
-  # object dependencies, including such things as downloading default datasets, e.g.,
-  # downloadData("LCC2005", modulePath(sim)).
-  # Nothing should be created here that does not create an named object in inputObjects.
-  # Any other initiation procedures should be put in "init" eventType of the doEvent function.
-  # Note: the module developer can use 'sim$.userSuppliedObjNames' in their function below to
-  # selectively skip unnecessary steps because the user has provided those inputObjects in the
-  # simInit call. e.g.,
-  # if (!('defaultColor' %in% sim$.userSuppliedObjNames)) {
-  #  sim$defaultColor <- 'red'
-  # }
-  # ! ----- EDIT BELOW ----- ! #
-  
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
-
-
 updateSpeciesEcoregionAttributes_GMM <- function(speciesEcoregion, time, cohortData){
   # the following codes were for updating cohortdata using speciesecoregion data at current simulation year
   # to assign maxB, maxANPP and maxB_eco to cohortData
@@ -281,3 +262,56 @@ calculateCompetition_GMM <- function(cohortData){
   return(cohortData)
 }
 
+
+.inputObjects = function(sim) {
+  
+  if (!suppliedElsewhere("ecoregion", sim)) {
+    ecoregion <- Cache(prepInputs, 
+                       url = extractURL("ecoregion"), 
+                       targetFile = "ecoregions.txt", 
+                       destinationPath = dPath, 
+                       fun = "utils::read.table", 
+                       fill = TRUE, 
+                       sep = "",
+                       #row.names = NULL,
+                       header = FALSE,
+                       blank.lines.skip = TRUE,
+                       stringsAsFactors = FALSE)
+    maxcol <- max(count.fields(file.path(dPath, "ecoregions.txt"), sep = ""))
+    colnames(ecoregion) <- c(paste("col", 1:maxcol, sep = ""))
+    ecoregion <- data.table(ecoregion)
+    ecoregion <- ecoregion[col1 != "LandisData",]
+    ecoregion <- ecoregion[col1 != ">>",]
+    names(ecoregion)[1:4] <- c("active", "mapcode", "ecoregion", "description")
+    ecoregion$mapcode <- as.integer(ecoregion$mapcode)
+    sim$ecoregion <- ecoregion
+    rm(maxcol)
+  }
+  
+  if (!suppliedElsewhere("speciesEcoregion", sim)) {
+    speciesEcoregion <- Cache(prepInputs,
+                              url = extractURL("speciesEcoregion"),
+                              fun = "utils::read.table", 
+                              destinationPath = dPath, 
+                              targetFile = "biomass-succession-dynamic-inputs_test.txt",
+                              fill = TRUE,
+                              sep = "",
+                              header = FALSE,
+                              blank.lines.skip = TRUE,
+                              stringsAsFactors = FALSE)
+    maxcol <- max(count.fields(file.path(dPath, "biomass-succession-dynamic-inputs_test.txt"), 
+                               sep = ""))
+    colnames(speciesEcoregion) <- paste("col", 1:maxcol, sep = "")
+    speciesEcoregion <- data.table(speciesEcoregion)
+    speciesEcoregion <- speciesEcoregion[col1 != "LandisData",]
+    speciesEcoregion <- speciesEcoregion[col1 != ">>",]
+    keepColNames <- c("year", "ecoregion", "species", "establishprob", "maxANPP", "maxB")
+    names(speciesEcoregion)[1:6] <- keepColNames
+    speciesEcoregion <- speciesEcoregion[, keepColNames, with = FALSE]
+    integerCols <- c("year", "establishprob", "maxANPP", "maxB")
+    speciesEcoregion[, (integerCols) := lapply(.SD, as.integer), .SDcols = integerCols]
+    sim$speciesEcoregion <- speciesEcoregion
+    rm(maxcol)
+  }
+  return(invisible(sim))
+}

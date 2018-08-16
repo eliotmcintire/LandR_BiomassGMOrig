@@ -60,7 +60,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialiazation
 doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE) {
-  if (is.numeric(sim$useParallel)) {
+  if (is.numeric(P(sim)$useParallel)) {
     a <- data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
     on.exit(setDTthreads(a))

@@ -29,7 +29,9 @@ defineModule(sim, list(
                     Set to NA if no saving is desired."),
     defineParameter("useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated?"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA, "defines the simulation time step, default is 10 years"),
-    defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?")
+    defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
+    defineParameter(name = "useParallel", class = "ANY", default = parallel::detectCores(),
+                    desc = "Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads, if logical and TRUE, it will be passed to parallel::makeCluster, and if cluster object it will be passed to parallel::parClusterApplyLB")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -49,7 +51,9 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "cohortData", objectClass = "data.table", 
-                  desc = "tree-level data by pixel group")
+                  desc = "tree-level data by pixel group"),
+    createsOutput(objectName = "simulationTreeOutput", objectClass = "data.table",
+                  desc = "Summary of several characteristics about the stands, derived from cohortData")
   )
 ))
 
@@ -265,27 +269,48 @@ calculateCompetition_GMM <- function(cohortData){
 
 .inputObjects = function(sim) {
   
-  if (!suppliedElsewhere("ecoregion", sim)) {
-    ecoregion <- Cache(prepInputs, 
-                       url = extractURL("ecoregion"), 
-                       targetFile = "ecoregions.txt", 
-                       destinationPath = dPath, 
-                       fun = "utils::read.table", 
-                       fill = TRUE, 
-                       sep = "",
-                       #row.names = NULL,
-                       header = FALSE,
-                       blank.lines.skip = TRUE,
-                       stringsAsFactors = FALSE)
-    maxcol <- max(count.fields(file.path(dPath, "ecoregions.txt"), sep = ""))
-    colnames(ecoregion) <- c(paste("col", 1:maxcol, sep = ""))
-    ecoregion <- data.table(ecoregion)
-    ecoregion <- ecoregion[col1 != "LandisData",]
-    ecoregion <- ecoregion[col1 != ">>",]
-    names(ecoregion)[1:4] <- c("active", "mapcode", "ecoregion", "description")
-    ecoregion$mapcode <- as.integer(ecoregion$mapcode)
-    sim$ecoregion <- ecoregion
+  if (!suppliedElsewhere("species", sim)) {
+    maxcol <- 13#max(count.fields(file.path(dPath, "species.txt"), sep = ""))
+    species <- Cache(prepInputs, 
+                     url = extractURL("species"), 
+                     targetFile = "species.txt", 
+                     destinationPath = dPath, 
+                     fun = "utils::read.table", 
+                     fill = TRUE, row.names = NULL,
+                     sep = "",
+                     header = FALSE,
+                     blank.lines.skip = TRUE,
+                     col.names = c(paste("col",1:maxcol, sep = "")),
+                     stringsAsFactors = FALSE)
+    species <- data.table(species[, 1:11])
+    species <- species[col1!= "LandisData",]
+    species <- species[col1!= ">>",]
+    colNames <- c("species", "longevity", "sexualmature", "shadetolerance",
+                  "firetolerance", "seeddistance_eff", "seeddistance_max",
+                  "resproutprob", "resproutage_min", "resproutage_max",
+                  "postfireregen")
+    names(species) <- colNames
+    species[,':='(seeddistance_eff = gsub(",", "", seeddistance_eff),
+                  seeddistance_max = gsub(",", "", seeddistance_max))]
+    # change all columns to integer
+    species <- species[, lapply(.SD, as.integer), .SDcols = names(species)[-c(1,NCOL(species))], 
+                       by = "species,postfireregen"]
+    setcolorder(species, colNames)
+    
+    # get additional species traits
+    speciesAddon <- mainInput
+    startRow <- which(speciesAddon$col1 == "SpeciesParameters")
+    speciesAddon <- speciesAddon[(startRow + 1):(startRow + nrow(species)),1:6, with = FALSE]
+    names(speciesAddon) <- c("species", "leaflongevity", "wooddecayrate",
+                             "mortalityshape", "growthcurve", "leafLignin")
+    speciesAddon[, ':='(leaflongevity = as.numeric(leaflongevity),
+                        wooddecayrate = as.numeric(wooddecayrate),
+                        mortalityshape = as.numeric(mortalityshape),
+                        growthcurve = as.numeric(growthcurve),
+                        leafLignin = as.numeric(leafLignin))]
+    sim$species <- setkey(species, species)[setkey(speciesAddon, species), nomatch = 0]
     rm(maxcol)
+    
   }
   
   if (!suppliedElsewhere("speciesEcoregion", sim)) {

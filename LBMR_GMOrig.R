@@ -2,7 +2,7 @@
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
-  name = "LBMR_GMOrig",
+  name = "LandR_BiomassGMOrig",
   description = "insert module description here",
   keywords = c("insert key words here"),
   authors = person("First", "Last", email = "first.last@example.com", role = c("aut", "cre")),
@@ -12,7 +12,7 @@ defineModule(sim, list(
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "LBMR_GMOrig.Rmd"),
+  documentation = list("README.txt", "LandR_BiomassGMOrig"),
   reqdPkgs = list(),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
@@ -52,7 +52,7 @@ defineModule(sim, list(
 
 ## event types
 #   - type `init` is required for initialiazation
-doEvent.LBMR_GMOrig = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE) {
   if (is.numeric(sim$useParallel)) {
     a <- data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
@@ -64,12 +64,12 @@ doEvent.LBMR_GMOrig = function(sim, eventTime, eventType, debug = FALSE) {
            sim <- Init(sim)
            
            sim <- scheduleEvent(sim, start(sim) + P(sim)$growthInitialTime,
-                                "LBMR_GMOrig", "mortalityAndGrowth", eventPriority = 5)
+                                "LandR_BiomassGMOrig", "mortalityAndGrowth", eventPriority = 5)
            },
          
          mortalityAndGrowth = {
            sim <- mortalityAndGrowth(sim)
-           sim <- scheduleEvent(sim, time(sim) + 1, "LBMR_GMOrig", "mortalityAndGrowth",
+           sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
                                 eventPriority = 5)
            },
           warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],

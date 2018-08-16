@@ -3,18 +3,18 @@
 # 1. Rename this file based on the content you are testing using
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
-#    `functionName` is a function's name in your module (e.g., `LBMR_GMOrigEvent1`).
-# 2. Copy this file to the tests folder (i.e., `C:/Users/yonluo/Documents/GitHub/LBMR_ClimateSensitive/LBMR_GMOrig/tests/testthat`).
+#    `functionName` is a function's name in your module (e.g., `LLandR_BiomassGMOrigEvent1`).
+# 2. Copy this file to the tests folder (i.e., `C:/Users/xxxx/GitHub/LandR_BiomassGMOrig/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
-  module <- list("LBMR_GMOrig")
-  path <- list(modulePath = "C:/Users/yonluo/Documents/GitHub/LBMR_ClimateSensitive",
+  module <- list("LandR_BiomassGMOrig")
+  path <- list(modulePath = "C:/Users/yonluo/Documents/GitHub/LandR_BiomassGMOrig",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),
     .globals = list(verbose = FALSE),
-    LBMR_GMOrig = list(.saveInitialTime = NA)
+    LandR_BiomassGMOrig = list(.saveInitialTime = NA)
   )
   times <- list(start = 0, end = 1)
 
@@ -55,10 +55,10 @@ test_that("test Event1 and Event2.", {
   #    Use this approach when using any function within the simList object
   #    (i.e., one version as a direct call, and one with `simList` object prepended).
 
-  if (exists("LBMR_GMOrigEvent1", envir = .GlobalEnv)) {
-    simOutput <- LBMR_GMOrigEvent1(mySim)
+  if (exists("LandR_BiomassGMOrigEvent1", envir = .GlobalEnv)) {
+    simOutput <- LandR_BiomassGMOrigEvent1(mySim)
   } else {
-    simOutput <- mySim$LBMR_GMOrigEvent1(mySim)
+    simOutput <- mySim$LandR_BiomassGMOrigEvent1(mySim)
   }
 
   expectedOutputEvent1Test1 <- " this is test for event 1. " # please define your expection of your output
@@ -66,10 +66,10 @@ test_that("test Event1 and Event2.", {
   expect_equal(simOutput$event1Test1, expectedOutputEvent1Test1) # or other expect function in testthat package.
   expect_equal(simOutput$event1Test2, as.numeric(999)) # or other expect function in testthat package.
 
-  if (exists("LBMR_GMOrigEvent2", envir = .GlobalEnv)) {
-    simOutput <- LBMR_GMOrigEvent2(mySim)
+  if (exists("LandR_BiomassGMOrigEvent2", envir = .GlobalEnv)) {
+    simOutput <- LandR_BiomassGMOrigEvent2(mySim)
   } else {
-    simOutput <- mySim$LBMR_GMOrigEvent2(mySim)
+    simOutput <- mySim$LandR_BiomassGMOrigEvent2(mySim)
   }
 
   expectedOutputEvent2Test1 <- " this is test for event 2. " # please define your expection of your output

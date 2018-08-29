@@ -13,7 +13,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandR_BiomassGMOrig"),
-  reqdPkgs = list(),
+  reqdPkgs = list("data.table", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter(name = "growthInitialTime", class = "numeric", default = 0,
@@ -32,21 +32,22 @@ defineModule(sim, list(
     defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
     defineParameter(name = "useParallel", class = "ANY", default = parallel::detectCores(),
                     desc = "Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads, if logical and TRUE, it will be passed to parallel::makeCluster, and if cluster object it will be passed to parallel::parClusterApplyLB")
-  ),
+    ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName = "cohortData", objectClass = "data.table",
                  desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
-                  succession time step",
+                 succession time step",
                  sourceURL = NA),
     expectsInput(objectName = "lastReg", objectClass = "numeric",
                  desc = "time at last regeneration", sourceURL = NA),
     expectsInput(objectName = "species", objectClass = "data.table",
                  desc = "a table that has species traits such as longevity...",
                  sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),
-    expectsInput(objectName = "speciesEcoregion", objectClass = "data.table",
-                 desc = "table defining the maxANPP, maxB and SEP, 
-                 which can change with both ecoregion and simulation time")
+    expectsInput(objectName = "speciesEcoregion", 
+                 objectClass = "data.table",
+                 desc = "table defining the maxANPP, maxB and SEP, which vary by ecoregion and simulation time", 
+                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession/master/biomass-succession-archive/trunk/tests/v6.0-2.0/biomass-succession-dynamic-inputs_test.txt")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -55,7 +56,7 @@ defineModule(sim, list(
     createsOutput(objectName = "simulationTreeOutput", objectClass = "data.table",
                   desc = "Summary of several characteristics about the stands, derived from cohortData")
   )
-))
+  ))
 
 ## event types
 #   - type `init` is required for initialiazation
@@ -72,15 +73,15 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
            
            sim <- scheduleEvent(sim, start(sim) + P(sim)$growthInitialTime,
                                 "LandR_BiomassGMOrig", "mortalityAndGrowth", eventPriority = 5)
-           },
+         },
          
          mortalityAndGrowth = {
            sim <- mortalityAndGrowth(sim)
            sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
                                 eventPriority = 5)
-           },
-          warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-                        "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+         },
+         warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
+                       "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
   return(invisible(sim))
 }
@@ -268,6 +269,27 @@ calculateCompetition_GMM <- function(cohortData){
 
 
 .inputObjects = function(sim) {
+  dPath <- dataPath(sim)
+  
+  maxcol <- 7L
+  
+  mainInput <- Cache(prepInputs,
+                     url = paste("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
+                                 "Extensions-Succession/master/biomass-succession-archive/",
+                                 "trunk/tests/v6.0-2.0/biomass-succession_test.txt", sep = ""),
+                     targetFile = "biomass-succession_test.txt",
+                     destinationPath = dPath,
+                     fun = "utils::read.table",
+                     fill = TRUE,  #purge = 7,
+                     sep = "",
+                     header = FALSE,
+                     col.names = c(paste("col",1:maxcol, sep = "")),
+                     blank.lines.skip = TRUE,
+                     stringsAsFactors = FALSE)
+  
+  mainInput <- data.table(mainInput)
+  mainInput <- mainInput[col1 != ">>",]
+  
   
   if (!suppliedElsewhere("species", sim)) {
     maxcol <- 13#max(count.fields(file.path(dPath, "species.txt"), sep = ""))

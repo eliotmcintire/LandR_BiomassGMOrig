@@ -43,11 +43,11 @@ defineModule(sim, list(
                  desc = "time at last regeneration", sourceURL = NA),
     expectsInput(objectName = "species", objectClass = "data.table",
                  desc = "a table that has species traits such as longevity...",
-                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),
+                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession-Archive/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),
     expectsInput(objectName = "speciesEcoregion", 
                  objectClass = "data.table",
                  desc = "table defining the maxANPP, maxB and SEP, which vary by ecoregion and simulation time", 
-                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession/master/biomass-succession-archive/trunk/tests/v6.0-2.0/biomass-succession-dynamic-inputs_test.txt")
+                 sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession-Archive/master/biomass-succession-archive/trunk/tests/v6.0-2.0/biomass-succession-dynamic-inputs_test.txt")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),

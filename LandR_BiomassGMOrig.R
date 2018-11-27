@@ -16,9 +16,6 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
-    defineParameter(name = "growthInitialTime", class = "numeric", default = 0,
-                    min = NA_real_, max = NA_real_,
-                    desc = "Initial time for the growth event to occur"),
     defineParameter(name = ".plotInitialTime", class = "numeric", default = 0,
                     min = NA, max = NA,
                     desc = "This describes the simulation time at which the
@@ -27,9 +24,12 @@ defineModule(sim, list(
                     min = NA, max = NA,
                     desc = "This describes the simulation time at which the first save event should occur.
                     Set to NA if no saving is desired."),
+    defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
+    defineParameter(name = "growthInitialTime", class = "numeric", default = 0,
+                    min = NA_real_, max = NA_real_,
+                    desc = "Initial time for the growth event to occur"),
     defineParameter("useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated?"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA, "defines the simulation time step, default is 10 years"),
-    defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
     defineParameter(name = "useParallel", class = "ANY", default = parallel::detectCores(),
                     desc = "Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads, if logical and TRUE, it will be passed to parallel::makeCluster, and if cluster object it will be passed to parallel::parClusterApplyLB")
     ),

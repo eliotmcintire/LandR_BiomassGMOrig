@@ -16,44 +16,40 @@ defineModule(sim, list(
   reqdPkgs = list("data.table", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
-    defineParameter(name = ".plotInitialTime", class = "numeric", default = 0,
-                    min = NA, max = NA,
+    defineParameter(".plotInitialTime", "numeric", default = 0, min = NA, max = NA,
                     desc = "This describes the simulation time at which the
                     first plot event should occur"),
-    defineParameter(name = ".saveInitialTime", class = "numeric", default = 0,
-                    min = NA, max = NA,
+    defineParameter(".saveInitialTime", "numeric", default = 0, min = NA, max = NA,
                     desc = "This describes the simulation time at which the first save event should occur.
                     Set to NA if no saving is desired."),
     defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
-    defineParameter(name = "growthInitialTime", class = "numeric", default = 0,
-                    min = NA_real_, max = NA_real_,
+    defineParameter("growthInitialTime", "numeric", default = 0, min = NA_real_, max = NA_real_,
                     desc = "Initial time for the growth event to occur"),
     defineParameter("useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated?"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA, "defines the simulation time step, default is 10 years"),
-    defineParameter(name = "useParallel", class = "ANY", default = parallel::detectCores(),
+    defineParameter("useParallel", "ANY", default = parallel::detectCores(),
                     desc = "Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads, if logical and TRUE, it will be passed to parallel::makeCluster, and if cluster object it will be passed to parallel::parClusterApplyLB")
-    ),
+  ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName = "cohortData", objectClass = "data.table",
+    expectsInput("cohortData", "data.table",
                  desc = "age cohort-biomass table hooked to pixel group map by pixelGroupIndex at
                  succession time step",
                  sourceURL = NA),
-    expectsInput(objectName = "lastReg", objectClass = "numeric",
+    expectsInput("lastReg", "numeric",
                  desc = "time at last regeneration", sourceURL = NA),
-    expectsInput(objectName = "species", objectClass = "data.table",
+    expectsInput("species", "data.table",
                  desc = "a table that has species traits such as longevity...",
                  sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession-Archive/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),
-    expectsInput(objectName = "speciesEcoregion", 
-                 objectClass = "data.table",
-                 desc = "table defining the maxANPP, maxB and SEP, which vary by ecoregion and simulation time", 
+    expectsInput("speciesEcoregion", "data.table",
+                 desc = "table defining the maxANPP, maxB and SEP, which vary by ecoregion and simulation time",
                  sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession-Archive/master/biomass-succession-archive/trunk/tests/v6.0-2.0/biomass-succession-dynamic-inputs_test.txt")
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = "cohortData", objectClass = "data.table", 
+    createsOutput("cohortData", "data.table",
                   desc = "tree-level data by pixel group"),
-    createsOutput(objectName = "simulationTreeOutput", objectClass = "data.table",
+    createsOutput("simulationTreeOutput", "data.table",
                   desc = "Summary of several characteristics about the stands, derived from cohortData")
   )
   ))
@@ -70,11 +66,11 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
          init = {
            ## do stuff for this event
            sim <- Init(sim)
-           
+
            sim <- scheduleEvent(sim, start(sim) + P(sim)$growthInitialTime,
                                 "LandR_BiomassGMOrig", "mortalityAndGrowth", eventPriority = 5)
          },
-         
+
          mortalityAndGrowth = {
            sim <- mortalityAndGrowth(sim)
            sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
@@ -100,97 +96,86 @@ Init <- function(sim) {
 mortalityAndGrowth <- function(sim) {
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0,]
-  pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup), 
+  pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),
                             temID = 1:length(unique(cohortData$pixelGroup)))
   cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = 10^4), max(pixelGroups$temID))))
-  if(length(cutpoints) == 1){cutpoints <- c(cutpoints, cutpoints+1)}
+  if (length(cutpoints) == 1) cutpoints <- c(cutpoints, cutpoints + 1)
   pixelGroups[, groups:=cut(temID, breaks = cutpoints,
                             labels = paste("Group", 1:(length(cutpoints)-1),
                                            sep = ""),
-                            include.lowest = T)]
+                            include.lowest = TRUE)]
   for(subgroup in paste("Group",  1:(length(cutpoints)-1), sep = "")){
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
-    set(subCohortData, ,"age", subCohortData$age + 1)
+    set(subCohortData, NULL, "age", subCohortData$age + 1)
     subCohortData <- updateSpeciesEcoregionAttributes_GMM(speciesEcoregion = sim$speciesEcoregion,
                                                           time = round(time(sim)), cohortData = subCohortData)
     subCohortData <- updateSpeciesAttributes_GMM(species = sim$species, cohortData = subCohortData)
-    subCohortData <- calculateSumB_GMM(cohortData = subCohortData, 
-                                       lastReg = sim$lastReg, 
+    subCohortData <- calculateSumB_GMM(cohortData = subCohortData,
+                                       lastReg = sim$lastReg,
                                        simuTime = time(sim),
                                        successionTimestep = P(sim)$successionTimestep)
     subCohortData <- subCohortData[age <= longevity,]
     subCohortData <- calculateAgeMortality_GMM(cohortData = subCohortData)
-    set(subCohortData, , c("longevity", "mortalityshape"), NULL)
+    set(subCohortData, NULL, c("longevity", "mortalityshape"), NULL)
     subCohortData <- calculateCompetition_GMM(cohortData = subCohortData)
-    if(!P(sim)$calibrate){
-      set(subCohortData, , "sumB", NULL)
+    if (!P(sim)$calibrate) {
+      set(subCohortData, NULL, "sumB", NULL)
     }
     #### the below two lines of codes are to calculate actual ANPP
     subCohortData <- calculateANPP_GMM(cohortData = subCohortData)
-    set(subCohortData, , "growthcurve", NULL)
-    set(subCohortData, ,"aNPPAct",
-        pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
+    set(subCohortData, NULL, "growthcurve", NULL)
+    set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
     subCohortData <- calculateGrowthMortality_GMM(cohortData = subCohortData)
-    set(subCohortData, ,"mBio",
-        pmax(0, subCohortData$mBio - subCohortData$mAge))
-    set(subCohortData, ,"mBio",
-        pmin(subCohortData$mBio, subCohortData$aNPPAct))
-    set(subCohortData, ,"mortality",
-        subCohortData$mBio + subCohortData$mAge)
-    set(subCohortData, ,c("mBio", "mAge", "maxANPP",
-                          "maxB", "maxB_eco", "bAP", "bPM"),
-        NULL)
-    if(P(sim)$calibrate){
-      set(subCohortData, ,"deltaB",
+    set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
+    set(subCohortData, NULL, "mBio", pmin(subCohortData$mBio, subCohortData$aNPPAct))
+    set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
+    set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
+    if (P(sim)$calibrate) {
+      set(subCohortData, NULL, "deltaB",
           as.integer(subCohortData$aNPPAct - subCohortData$mortality))
-      set(subCohortData, ,"B",
-          subCohortData$B + subCohortData$deltaB)
-      tempcohortdata <- subCohortData[,.(pixelGroup, Year = time(sim), siteBiomass = sumB, speciesCode,
-                                         Age = age, iniBiomass = B - deltaB, ANPP = round(aNPPAct, 1),
-                                         Mortality = round(mortality,1), deltaB, finBiomass = B)]
-      
-      tempcohortdata <- setkey(tempcohortdata, speciesCode)[setkey(sim$species[,.(species, speciesCode)],
-                                                                   speciesCode),
-                                                            nomatch = 0][, ':='(speciesCode = species,
-                                                                                species = NULL,
-                                                                                pixelGroup = NULL)]
+      set(subCohortData, NULL, "B", subCohortData$B + subCohortData$deltaB)
+      tempcohortdata <- subCohortData[, .(pixelGroup, Year = time(sim), siteBiomass = sumB, speciesCode,
+                                          Age = age, iniBiomass = B - deltaB, ANPP = round(aNPPAct, 1),
+                                          Mortality = round(mortality, 1), deltaB, finBiomass = B)]
+
+      tempcohortdata <- setkey(tempcohortdata, speciesCode)[
+        setkey(sim$species[, .(species, speciesCode)], speciesCode),
+        nomatch = 0][, ':='(speciesCode = species, species = NULL, pixelGroup = NULL)]
       setnames(tempcohortdata, "speciesCode", "Species")
       sim$simulationTreeOutput <- rbind(sim$simulationTreeOutput, tempcohortdata)
-      set(subCohortData, ,c("deltaB", "sumB"), NULL)
+      set(subCohortData, NULL, c("deltaB", "sumB"), NULL)
     } else {
-      set(subCohortData, ,"B",
+      set(subCohortData, NULL, "B",
           subCohortData$B + as.integer(subCohortData$aNPPAct - subCohortData$mortality))
     }
     sim$cohortData <- rbindlist(list(sim$cohortData, subCohortData))
     rm(subCohortData)
-    gc()
+    gc() # TODO: use .gc()
   }
   rm(cohortData, cutpoints, pixelGroups)
   return(invisible(sim))
-  
 }
 
 updateSpeciesEcoregionAttributes_GMM <- function(speciesEcoregion, time, cohortData){
   # the following codes were for updating cohortdata using speciesecoregion data at current simulation year
   # to assign maxB, maxANPP and maxB_eco to cohortData
   specieseco_current <- speciesEcoregion[year <= time]
-  specieseco_current <- setkey(specieseco_current[year == max(specieseco_current$year),
-                                                  .(speciesCode, maxANPP,
-                                                    maxB, ecoregionGroup)],
-                               speciesCode, ecoregionGroup)
-  specieseco_current[, maxB_eco:=max(maxB), by = ecoregionGroup]
-  
-  cohortData <- setkey(cohortData, speciesCode, ecoregionGroup)[specieseco_current, nomatch=0]
+  specieseco_current <- setkey(specieseco_current[
+    year == max(specieseco_current$year), .(speciesCode, maxANPP, maxB, ecoregionGroup)],
+    speciesCode, ecoregionGroup)
+  specieseco_current[, maxB_eco := max(maxB), by = ecoregionGroup]
+
+  cohortData <- setkey(cohortData, speciesCode, ecoregionGroup)[specieseco_current, nomatch = 0]
   return(cohortData)
 }
 
 updateSpeciesAttributes_GMM <- function(species, cohortData){
   # to assign longevity, mortalityshape, growthcurve to cohortData
-  species_temp <- setkey(species[,.(speciesCode, longevity, mortalityshape,
-                                    growthcurve)], speciesCode)
+  species_temp <- setkey(species[, .(speciesCode, longevity, mortalityshape,
+                                     growthcurve)], speciesCode)
   setkey(cohortData, speciesCode)
-  cohortData <- cohortData[species_temp, nomatch=0]
+  cohortData <- cohortData[species_temp, nomatch = 0]
   return(cohortData)
 }
 
@@ -198,25 +183,24 @@ calculateSumB_GMM <- function(cohortData, lastReg, simuTime, successionTimestep)
   # this function is used to calculate total stand biomass that does not include the new cohorts
   # the new cohorts are defined as the age younger than simulation time step
   # reset sumB
-  pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup), 
+  pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),
                             temID = 1:length(unique(cohortData$pixelGroup)))
   cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = 10^4), max(pixelGroups$temID))))
   pixelGroups[, groups:=cut(temID, breaks = cutpoints,
-                            labels = paste("Group", 1:(length(cutpoints)-1),
-                                           sep = ""),
-                            include.lowest = T)]
-  for(subgroup in paste("Group",  1:(length(cutpoints)-1), sep = "")){
+                            labels = paste("Group", 1:(length(cutpoints)-1), sep = ""),
+                            include.lowest = TRUE)]
+  for(subgroup in paste("Group",  1:(length(cutpoints) - 1), sep = "")){
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
-    set(subCohortData, ,"sumB", 0L)
+    set(subCohortData, NULL, "sumB", 0L)
     if(simuTime == lastReg + successionTimestep - 2){
       sumBtable <- subCohortData[age > successionTimestep,
-                                 .(tempsumB = as.integer(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = as.integer(sum(B, na.rm = TRUE))), by = pixelGroup]
     } else {
       sumBtable <- subCohortData[age >= successionTimestep,
-                                 .(tempsumB = as.integer(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = as.integer(sum(B, na.rm = TRUE))), by = pixelGroup]
     }
     subCohortData <- merge(subCohortData, sumBtable, by = "pixelGroup", all.x = TRUE)
-    subCohortData[is.na(tempsumB), tempsumB:=as.integer(0L)][,':='(sumB = tempsumB, tempsumB = NULL)]
+    subCohortData[is.na(tempsumB), tempsumB:=as.integer(0L)][, ':='(sumB = tempsumB, tempsumB = NULL)]
     if(subgroup == "Group1"){
       newcohortData <- subCohortData
     } else {
@@ -229,54 +213,51 @@ calculateSumB_GMM <- function(cohortData, lastReg, simuTime, successionTimestep)
   return(newcohortData)
 }
 
-
-calculateAgeMortality_GMM <- function(cohortData){
-  set(cohortData, ,"mAge",
+calculateAgeMortality_GMM <- function(cohortData) {
+  set(cohortData, NULL, "mAge",
       cohortData$B*(exp((cohortData$age)/cohortData$longevity*cohortData$mortalityshape)/exp(cohortData$mortalityshape)))
-  set(cohortData, ,"mAge",
+  set(cohortData, NULL, "mAge",
       pmin(cohortData$B,cohortData$mAge))
   return(cohortData)
 }
 
-calculateANPP_GMM <- function(cohortData){
-  set(cohortData, ,"aNPPAct",
+calculateANPP_GMM <- function(cohortData) {
+  set(cohortData, NULL, "aNPPAct",
       cohortData$maxANPP*exp(1)*(cohortData$bAP^cohortData$growthcurve)*exp(-(cohortData$bAP^cohortData$growthcurve))*cohortData$bPM)
-  set(cohortData, ,"aNPPAct",
+  set(cohortData, NULL, "aNPPAct",
       pmin(cohortData$maxANPP*cohortData$bPM,cohortData$aNPPAct))
   return(cohortData)
 }
 
-calculateGrowthMortality_GMM <- function(cohortData){
+calculateGrowthMortality_GMM <- function(cohortData) {
   cohortData[bAP %>>% 1.0, mBio := maxANPP*bPM]
   cohortData[bAP %<=% 1.0, mBio := maxANPP*(2*bAP)/(1 + bAP)*bPM]
-  set(cohortData, , "mBio",
+  set(cohortData, NULL, "mBio",
       pmin(cohortData$B, cohortData$mBio))
-  set(cohortData, , "mBio",
+  set(cohortData, NULL, "mBio",
       pmin(cohortData$maxANPP*cohortData$bPM, cohortData$mBio))
   return(cohortData)
 }
 
 calculateCompetition_GMM <- function(cohortData){
-  set(cohortData, , "bPot", pmax(1, cohortData$maxB - cohortData$sumB + cohortData$B))
-  set(cohortData, , "bAP", cohortData$B/cohortData$bPot)
-  set(cohortData, , "bPot", NULL)
-  set(cohortData, , "cMultiplier", pmax(as.numeric(cohortData$B^0.95), 1))
+  set(cohortData, NULL, "bPot", pmax(1, cohortData$maxB - cohortData$sumB + cohortData$B))
+  set(cohortData, NULL, "bAP", cohortData$B/cohortData$bPot)
+  set(cohortData, NULL, "bPot", NULL)
+  set(cohortData, NULL, "cMultiplier", pmax(as.numeric(cohortData$B^0.95), 1))
   cohortData[, cMultTotal := sum(cMultiplier), by = pixelGroup]
-  set(cohortData, , "bPM", cohortData$cMultiplier/cohortData$cMultTotal)
-  set(cohortData, , c("cMultiplier", "cMultTotal"), NULL)
+  set(cohortData, NULL, "bPM", cohortData$cMultiplier/cohortData$cMultTotal)
+  set(cohortData, NULL, c("cMultiplier", "cMultTotal"), NULL)
   return(cohortData)
 }
 
+.inputObjects <- function(sim) {
+  dPath <- asPath(dataPath(sim))
 
-.inputObjects = function(sim) {
-  dPath <- dataPath(sim)
-  
   maxcol <- 7L
-  
   mainInput <- Cache(prepInputs,
-                     url = paste("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
-                                 "Extensions-Succession/master/biomass-succession-archive/",
-                                 "trunk/tests/v6.0-2.0/biomass-succession_test.txt", sep = ""),
+                     url = paste0("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
+                                  "Extensions-Succession/master/biomass-succession-archive/",
+                                  "trunk/tests/v6.0-2.0/biomass-succession_test.txt"),
                      targetFile = "biomass-succession_test.txt",
                      destinationPath = dPath,
                      fun = "utils::read.table",
@@ -286,18 +267,17 @@ calculateCompetition_GMM <- function(cohortData){
                      col.names = c(paste("col",1:maxcol, sep = "")),
                      blank.lines.skip = TRUE,
                      stringsAsFactors = FALSE)
-  
+
   mainInput <- data.table(mainInput)
   mainInput <- mainInput[col1 != ">>",]
-  
-  
+
   if (!suppliedElsewhere("species", sim)) {
     maxcol <- 13#max(count.fields(file.path(dPath, "species.txt"), sep = ""))
-    species <- Cache(prepInputs, 
-                     url = extractURL("species"), 
-                     targetFile = "species.txt", 
-                     destinationPath = dPath, 
-                     fun = "utils::read.table", 
+    species <- Cache(prepInputs,
+                     url = extractURL("species"),
+                     targetFile = "species.txt",
+                     destinationPath = dPath,
+                     fun = "utils::read.table",
                      fill = TRUE, row.names = NULL,
                      sep = "",
                      header = FALSE,
@@ -315,10 +295,10 @@ calculateCompetition_GMM <- function(cohortData){
     species[,':='(seeddistance_eff = gsub(",", "", seeddistance_eff),
                   seeddistance_max = gsub(",", "", seeddistance_max))]
     # change all columns to integer
-    species <- species[, lapply(.SD, as.integer), .SDcols = names(species)[-c(1,NCOL(species))], 
+    species <- species[, lapply(.SD, as.integer), .SDcols = names(species)[-c(1,NCOL(species))],
                        by = "species,postfireregen"]
     setcolorder(species, colNames)
-    
+
     # get additional species traits
     speciesAddon <- mainInput
     startRow <- which(speciesAddon$col1 == "SpeciesParameters")
@@ -332,21 +312,20 @@ calculateCompetition_GMM <- function(cohortData){
                         leafLignin = as.numeric(leafLignin))]
     sim$species <- setkey(species, species)[setkey(speciesAddon, species), nomatch = 0]
     rm(maxcol)
-    
   }
-  
+
   if (!suppliedElsewhere("speciesEcoregion", sim)) {
     speciesEcoregion <- Cache(prepInputs,
                               url = extractURL("speciesEcoregion"),
-                              fun = "utils::read.table", 
-                              destinationPath = dPath, 
+                              fun = "utils::read.table",
+                              destinationPath = dPath,
                               targetFile = "biomass-succession-dynamic-inputs_test.txt",
                               fill = TRUE,
                               sep = "",
                               header = FALSE,
                               blank.lines.skip = TRUE,
                               stringsAsFactors = FALSE)
-    maxcol <- max(count.fields(file.path(dPath, "biomass-succession-dynamic-inputs_test.txt"), 
+    maxcol <- max(count.fields(file.path(dPath, "biomass-succession-dynamic-inputs_test.txt"),
                                sep = ""))
     colnames(speciesEcoregion) <- paste("col", 1:maxcol, sep = "")
     speciesEcoregion <- data.table(speciesEcoregion)
@@ -360,5 +339,6 @@ calculateCompetition_GMM <- function(cohortData){
     sim$speciesEcoregion <- speciesEcoregion
     rm(maxcol)
   }
+
   return(invisible(sim))
 }

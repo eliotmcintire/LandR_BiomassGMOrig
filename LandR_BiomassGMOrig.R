@@ -70,7 +70,7 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
          },
 
          mortalityAndGrowth = {
-           sim <- mortalityAndGrowth(sim)
+           sim <- MortalityAndGrowth(sim)
            sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
                                 eventPriority = 5)
          },
@@ -226,7 +226,7 @@ calculateAgeMortality_GMM <- function(cohortData) {
   return(cohortData)
 }
 
-calculateANPP <- function(cohortData, stage) {
+calculateANPP_GMM <- function(cohortData, stage) {
     set(cohortData, NULL, "aNPPAct",
         cohortData$maxANPP*exp(1)*(cohortData$bAP^cohortData$growthcurve)*exp(-(cohortData$bAP^cohortData$growthcurve))*cohortData$bPM)
     set(cohortData, NULL, "aNPPAct",

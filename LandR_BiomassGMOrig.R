@@ -81,8 +81,16 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
 }
 
 ## event functions
-
 Init <- function(sim) {
+  ## export local functions to simList
+  sim$updateSpeciesEcoregionAttributes <- updateSpeciesEcoregionAttributes
+  sim$updateSpeciesAttributes <- updateSpeciesAttributes
+  sim$calculateSumB <- calculateSumB
+  sim$calculateAgeMortality <- calculateAgeMortality
+  sim$calculateANPP <- calculateANPP
+  sim$calculateGrowthMortality <- calculateGrowthMortality
+  sim$calculateCompetition <- calculateCompetition
+  
   return(invisible(sim))
 }
 
@@ -158,7 +166,7 @@ MortalityAndGrowth <- function(sim) {
   return(invisible(sim))
 }
 
-
+## other functions
 updateSpeciesEcoregionAttributes <- function(speciesEcoregion, time, cohortData) {
   # the following codes were for updating cohortdata using speciesecoregion data at current simulation year
   # to assign maxB, maxANPP and maxB_eco to cohortData
@@ -230,7 +238,6 @@ calculateAgeMortality <- function(cohortData, stage = "nonSpinup", spinupMortali
   }
   return(cohortData)
 }
-
 
 calculateANPP <- function(cohortData, stage = "nonSpinup") {
   if (stage == "spinup") {

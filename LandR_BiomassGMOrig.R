@@ -287,26 +287,26 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
 .inputObjects <- function(sim) {
   dPath <- asPath(dataPath(sim))
 
-  maxcol <- 7L
-  mainInput <- Cache(prepInputs,
-                     url = paste0("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
-                                  "Extensions-Succession/master/biomass-succession-archive/",
-                                  "trunk/tests/v6.0-2.0/biomass-succession_test.txt"),
-                     targetFile = "biomass-succession_test.txt",
-                     destinationPath = dPath,
-                     fun = "utils::read.table",
-                     fill = TRUE,  #purge = 7,
-                     sep = "",
-                     header = FALSE,
-                     col.names = c(paste("col",1:maxcol, sep = "")),
-                     blank.lines.skip = TRUE,
-                     stringsAsFactors = FALSE)
-
-  mainInput <- data.table(mainInput)
-  mainInput <- mainInput[col1 != ">>",]
-
   # read species txt and convert it to data table
   if (!suppliedElsewhere("species", sim)) {
+    maxcol <- 7L
+    mainInput <- Cache(prepInputs,
+                       url = paste0("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
+                                    "Extensions-Succession/master/biomass-succession-archive/",
+                                    "trunk/tests/v6.0-2.0/biomass-succession_test.txt"),
+                       targetFile = "biomass-succession_test.txt",
+                       destinationPath = dPath,
+                       fun = "utils::read.table",
+                       fill = TRUE,  #purge = 7,
+                       sep = "",
+                       header = FALSE,
+                       col.names = c(paste("col",1:maxcol, sep = "")),
+                       blank.lines.skip = TRUE,
+                       stringsAsFactors = FALSE)
+    
+    mainInput <- data.table(mainInput)
+    mainInput <- mainInput[col1 != ">>",]
+    
     maxcol <- 13#max(count.fields(file.path(dPath, "species.txt"), sep = ""))
     species <- Cache(prepInputs,
                      url = extractURL("species"),

@@ -159,7 +159,7 @@ MortalityAndGrowth <- function(sim) {
 }
 
 
-updateSpeciesEcoregionAttributes_GMM <- function(speciesEcoregion, time, cohortData) {
+updateSpeciesEcoregionAttributes <- function(speciesEcoregion, time, cohortData) {
   # the following codes were for updating cohortdata using speciesecoregion data at current simulation year
   # to assign maxB, maxANPP and maxB_eco to cohortData
   specieseco_current <- speciesEcoregion[year <= time]
@@ -173,8 +173,7 @@ updateSpeciesEcoregionAttributes_GMM <- function(speciesEcoregion, time, cohortD
   return(cohortData)
 }
 
-
-updateSpeciesAttributes_GMM <- function(species, cohortData){
+updateSpeciesAttributes <- function(species, cohortData) {
   # to assign longevity, mortalityshape, growthcurve to cohortData
   species_temp <- setkey(species[, .(speciesCode, longevity, mortalityshape,
                                      growthcurve)], speciesCode)
@@ -183,7 +182,7 @@ updateSpeciesAttributes_GMM <- function(species, cohortData){
   return(cohortData)
 }
 
-calculateSumB_GMM <- function(cohortData, lastReg, simuTime, successionTimestep) {
+calculateSumB <- function(cohortData, lastReg, simuTime, successionTimestep) {
   # this function is used to calculate total stand biomass that does not include the new cohorts
   # the new cohorts are defined as the age younger than simulation time step
   # reset sumB
@@ -217,43 +216,71 @@ calculateSumB_GMM <- function(cohortData, lastReg, simuTime, successionTimestep)
   return(newcohortData)
 }
 
-
-calculateAgeMortality_GMM <- function(cohortData) {
-  set(cohortData, NULL, "mAge",
-      cohortData$B*(exp((cohortData$age)/cohortData$longevity*cohortData$mortalityshape)/exp(cohortData$mortalityshape)))
-  set(cohortData, NULL, "mAge",
-      pmin(cohortData$B,cohortData$mAge))
+calculateAgeMortality <- function(cohortData, stage = "nonSpinup", spinupMortalityfraction) {
+  # for age-related mortality calculation
+  if (stage == "spinup") {
+    cohortData[age > 0, mAge := B*(exp((age)/longevity*mortalityshape)/exp(mortalityshape))]
+    cohortData[age > 0, mAge := mAge+B*spinupMortalityfraction]
+    cohortData[age > 0, mAge := pmin(B, mAge)]
+  } else {
+    set(cohortData, NULL, "mAge",
+        cohortData$B*(exp((cohortData$age)/cohortData$longevity*cohortData$mortalityshape)/exp(cohortData$mortalityshape)))
+    set(cohortData, NULL, "mAge",
+        pmin(cohortData$B,cohortData$mAge))
+  }
   return(cohortData)
 }
 
-calculateANPP_GMM <- function(cohortData, stage) {
+
+calculateANPP <- function(cohortData, stage = "nonSpinup") {
+  if (stage == "spinup") {
+    cohortData[age > 0, aNPPAct := maxANPP*exp(1)*(bAP^growthcurve)*exp(-(bAP^growthcurve))*bPM]
+    cohortData[age > 0, aNPPAct := pmin(maxANPP*bPM,aNPPAct)]
+  } else {
     set(cohortData, NULL, "aNPPAct",
         cohortData$maxANPP*exp(1)*(cohortData$bAP^cohortData$growthcurve)*exp(-(cohortData$bAP^cohortData$growthcurve))*cohortData$bPM)
     set(cohortData, NULL, "aNPPAct",
         pmin(cohortData$maxANPP*cohortData$bPM,cohortData$aNPPAct))
-  
+  }
   return(cohortData)
 }
 
-calculateGrowthMortality_GMM <- function(cohortData) {
-  cohortData[bAP %>>% 1.0, mBio := maxANPP*bPM]
-  cohortData[bAP %<=% 1.0, mBio := maxANPP*(2*bAP)/(1 + bAP)*bPM]
-  set(cohortData, NULL, "mBio",
-      pmin(cohortData$B, cohortData$mBio))
-  set(cohortData, NULL, "mBio",
-      pmin(cohortData$maxANPP*cohortData$bPM, cohortData$mBio))
+calculateGrowthMortality <- function(cohortData, stage = "nonSpinup") {
+  if (stage == "spinup") {
+    cohortData[age > 0 & bAP %>>% 1.0, mBio := maxANPP*bPM]
+    cohortData[age > 0 & bAP %<=% 1.0, mBio := maxANPP*(2*bAP) / (1 + bAP)*bPM]
+    cohortData[age > 0, mBio := pmin(B, mBio)]
+    cohortData[age > 0, mBio := pmin(maxANPP*bPM, mBio)]
+  } else {
+    cohortData[bAP %>>% 1.0, mBio := maxANPP*bPM]
+    cohortData[bAP %<=% 1.0, mBio := maxANPP*(2*bAP)/(1 + bAP)*bPM]
+    set(cohortData, NULL, "mBio",
+        pmin(cohortData$B, cohortData$mBio))
+    set(cohortData, NULL, "mBio",
+        pmin(cohortData$maxANPP*cohortData$bPM, cohortData$mBio))
+  }
   return(cohortData)
 }
 
-calculateCompetition_GMM <- function(cohortData){
+calculateCompetition <- function(cohortData, stage = "nonSpinup") {
   # two competition indics are calculated bAP and bPM
-  set(cohortData, NULL, "bPot", pmax(1, cohortData$maxB - cohortData$sumB + cohortData$B))
-  set(cohortData, NULL, "bAP", cohortData$B/cohortData$bPot)
-  set(cohortData, NULL, "bPot", NULL)
-  set(cohortData, NULL, "cMultiplier", pmax(as.numeric(cohortData$B^0.95), 1))
-  cohortData[, cMultTotal := sum(cMultiplier), by = pixelGroup]
-  set(cohortData, NULL, "bPM", cohortData$cMultiplier/cohortData$cMultTotal)
-  set(cohortData, NULL, c("cMultiplier", "cMultTotal"), NULL)
+  if (stage == "spinup") {
+    cohortData[age > 0, bPot := pmax(1, maxB - sumB + B)]
+    cohortData[age > 0, bAP := B/bPot]
+    set(cohortData, NULL, "bPot", NULL)
+    cohortData[, cMultiplier := pmax(as.numeric(B^0.95), 1)]
+    cohortData[age > 0, cMultTotal := sum(cMultiplier), by = pixelGroup]
+    cohortData[age > 0, bPM := cMultiplier / cMultTotal]
+    set(cohortData, NULL, c("cMultiplier", "cMultTotal"), NULL)
+  } else {
+    set(cohortData, NULL, "bPot", pmax(1, cohortData$maxB - cohortData$sumB + cohortData$B))
+    set(cohortData, NULL, "bAP", cohortData$B/cohortData$bPot)
+    set(cohortData, NULL, "bPot", NULL)
+    set(cohortData, NULL, "cMultiplier", pmax(as.numeric(cohortData$B^0.95), 1))
+    cohortData[, cMultTotal := sum(cMultiplier), by = pixelGroup]
+    set(cohortData, NULL, "bPM", cohortData$cMultiplier/cohortData$cMultTotal)
+    set(cohortData, NULL, c("cMultiplier", "cMultTotal"), NULL)
+  }
   return(cohortData)
 }
 

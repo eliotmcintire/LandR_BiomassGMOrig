@@ -116,25 +116,25 @@ MortalityAndGrowth <- function(sim) {
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
     set(subCohortData, NULL, "age", subCohortData$age + 1)
-    subCohortData <- updateSpeciesEcoregionAttributes_GMM(speciesEcoregion = sim$speciesEcoregion,
+    subCohortData <- updateSpeciesEcoregionAttributes(speciesEcoregion = sim$speciesEcoregion,
                                                           time = round(time(sim)), cohortData = subCohortData)
-    subCohortData <- updateSpeciesAttributes_GMM(species = sim$species, cohortData = subCohortData)
-    subCohortData <- calculateSumB_GMM(cohortData = subCohortData,
+    subCohortData <- updateSpeciesAttributes(species = sim$species, cohortData = subCohortData)
+    subCohortData <- calculateSumB(cohortData = subCohortData,
                                        lastReg = sim$lastReg,
                                        simuTime = time(sim),
                                        successionTimestep = P(sim)$successionTimestep)
     subCohortData <- subCohortData[age <= longevity,]
-    subCohortData <- calculateAgeMortality_GMM(cohortData = subCohortData)
+    subCohortData <- calculateAgeMortality(cohortData = subCohortData)
     set(subCohortData, NULL, c("longevity", "mortalityshape"), NULL)
-    subCohortData <- calculateCompetition_GMM(cohortData = subCohortData)
+    subCohortData <- calculateCompetition(cohortData = subCohortData)
     if (!P(sim)$calibrate) {
       set(subCohortData, NULL, "sumB", NULL)
     }
     #### the below two lines of codes are to calculate actual ANPP
-    subCohortData <- calculateANPP_GMM(cohortData = subCohortData)
+    subCohortData <- calculateANPP(cohortData = subCohortData)
     set(subCohortData, NULL, "growthcurve", NULL)
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
-    subCohortData <- calculateGrowthMortality_GMM(cohortData = subCohortData)
+    subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
     set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
     set(subCohortData, NULL, "mBio", pmin(subCohortData$mBio, subCohortData$aNPPAct))
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)

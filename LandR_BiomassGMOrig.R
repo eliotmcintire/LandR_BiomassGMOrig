@@ -45,11 +45,25 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("cohortData", "data.table",
+    createsOutput("calculateAgeMortality", "function",
+                  desc = "function to calculate aging and mortality"),
+    createsOutput("calculateANPP", "function",
+                  desc = "function to calculate ANPP"),
+    createsOutput("calculateCompetition", "function",
+                  desc = "function to calculate competition for light"),
+    createsOutput("calculateGrowthMortality", "data.table",
+                  desc = "function to calculate growth and mortality"),
+    createsOutput("calculateSumB", "function",
+                  desc = "function to sum biomass"),
+    createsOutput("cohortData", "function",
                   desc = "tree-level data by pixel group"),
     createsOutput("simulationTreeOutput", "data.table",
-                  desc = "Summary of several characteristics about the stands, derived from cohortData")
-  )
+                  desc = "Summary of several characteristics about the stands, derived from cohortData"),
+    createsOutput("updateSpeciesAttributes", "function",
+                  desc = "function to add/update species attributes in species cohort table"),
+    createsOutput("updateSpeciesEcoregionAttributes", "function",
+                  desc = "function to add/update species ecoregion attributes in species cohort table")
+   )
   ))
 
 ## event types

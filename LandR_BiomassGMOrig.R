@@ -19,14 +19,17 @@ defineModule(sim, list(
     defineParameter(".plotInitialTime", "numeric", default = 0, min = NA, max = NA,
                     desc = "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".saveInitialTime", "numeric", default = 0, min = NA, max = NA,
-                    desc = "This describes the simulation time at which the first save event should occur.
-                    Set to NA if no saving is desired."),
+                    desc = paste("This describes the simulation time at which the first save event should occur.",
+                                 "Set to NA if no saving is desired.")),
     defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
     defineParameter("growthInitialTime", "numeric", default = 0, min = NA_real_, max = NA_real_,
                     desc = "Initial time for the growth event to occur"),
-    defineParameter("successionTimestep", "numeric", 10, NA, NA, "defines the simulation time step, default is 10 years"),
+    defineParameter("successionTimestep", "numeric", 10, NA, NA,
+                    desc = "defines the simulation time step, default is 10 years"),
     defineParameter("useParallel", "ANY", default = parallel::detectCores(),
-                    desc = "Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads, if logical and TRUE, it will be passed to parallel::makeCluster, and if cluster object it will be passed to parallel::parClusterApplyLB")
+                    desc = paste("Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads,",
+                                 "if logical and TRUE, it will be passed to parallel::makeCluster,",
+                                 "and if cluster object it will be passed to parallel::parClusterApplyLB"))
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -104,7 +107,7 @@ Init <- function(sim) {
   sim$calculateANPP <- calculateANPP
   sim$calculateGrowthMortality <- calculateGrowthMortality
   sim$calculateCompetition <- calculateCompetition
-  
+
   return(invisible(sim))
 }
 
@@ -113,7 +116,7 @@ MortalityAndGrowth <- function(sim) {
     data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
   }
-  
+
   sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                        speciesCode, age, B, mortality, aNPPAct)]
   cohortData <- sim$cohortData
@@ -131,7 +134,8 @@ MortalityAndGrowth <- function(sim) {
     #   cohortData <- sim$cohortData
     set(subCohortData, NULL, "age", subCohortData$age + 1)
     subCohortData <- updateSpeciesEcoregionAttributes(speciesEcoregion = sim$speciesEcoregion,
-                                                          time = round(time(sim)), cohortData = subCohortData)
+                                                      time = round(time(sim)),
+                                                      cohortData = subCohortData)
     subCohortData <- updateSpeciesAttributes(species = sim$species, cohortData = subCohortData)
     subCohortData <- calculateSumB(cohortData = subCohortData,
                                        lastReg = sim$lastReg,
@@ -159,12 +163,10 @@ MortalityAndGrowth <- function(sim) {
       tempcohortdata <- subCohortData[,.(pixelGroup, Year = time(sim), siteBiomass = sumB, speciesCode,
                                          Age = age, iniBiomass = B - deltaB, ANPP = round(aNPPAct, 1),
                                          Mortality = round(mortality,1), deltaB, finBiomass = B)]
-      
-      tempcohortdata <- setkey(tempcohortdata, speciesCode)[setkey(sim$species[,.(species, speciesCode)],
-                                                                   speciesCode),
-                                                            nomatch = 0][, ':='(speciesCode = species,
-                                                                                species = NULL,
-                                                                                pixelGroup = NULL)]
+
+      tempcohortdata <- setkey(tempcohortdata, speciesCode)[
+        setkey(sim$species[, .(species, speciesCode)], speciesCode),
+        nomatch = 0][, ':='(speciesCode = species, species = NULL, pixelGroup = NULL)]
       setnames(tempcohortdata, "speciesCode", "Species")
       sim$simulationTreeOutput <- rbind(sim$simulationTreeOutput, tempcohortdata)
       set(subCohortData, NULL, c("deltaB", "sumB"), NULL)
@@ -190,7 +192,7 @@ updateSpeciesEcoregionAttributes <- function(speciesEcoregion, time, cohortData)
                                                     maxB, ecoregionGroup)],
                                speciesCode, ecoregionGroup)
   specieseco_current[, maxB_eco := max(maxB), by = ecoregionGroup]
-  
+
   cohortData <- setkey(cohortData, speciesCode, ecoregionGroup)[specieseco_current, nomatch = 0]
   return(cohortData)
 }
@@ -306,82 +308,16 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
 }
 
 .inputObjects <- function(sim) {
+  cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
   dPath <- asPath(dataPath(sim))
 
   # read species txt and convert it to data table
   if (!suppliedElsewhere("species", sim)) {
-    maxcol <- 7L
-    mainInput <- Cache(prepInputs,
-                       url = paste0("https://raw.githubusercontent.com/LANDIS-II-Foundation/",
-                                    "Extensions-Succession/master/biomass-succession-archive/",
-                                    "trunk/tests/v6.0-2.0/biomass-succession_test.txt"),
-                       targetFile = "biomass-succession_test.txt",
-                       destinationPath = dPath,
-                       fun = "utils::read.table",
-                       fill = TRUE,  #purge = 7,
-                       sep = "",
-                       header = FALSE,
-                       col.names = c(paste("col",1:maxcol, sep = "")),
-                       blank.lines.skip = TRUE,
-                       stringsAsFactors = FALSE)
-    
-    mainInput <- data.table(mainInput)
-    mainInput <- mainInput[col1 != ">>",]
-    
-    maxcol <- 13#max(count.fields(file.path(dPath, "species.txt"), sep = ""))
-    species <- Cache(prepInputs,
-                     url = extractURL("species"),
-                     targetFile = "species.txt",
-                     destinationPath = dPath,
-                     fun = "utils::read.table",
-                     fill = TRUE, row.names = NULL, #purge = 7,
-                     sep = "",
-                     header = FALSE,
-                     blank.lines.skip = TRUE,
-                     col.names = c(paste("col",1:maxcol, sep = "")),
-                     stringsAsFactors = FALSE,
-                     overwrite = TRUE)
-    species <- data.table(species[,1:11])
-    species <- species[col1!= "LandisData",]
-    species <- species[col1!= ">>",]
-    colNames <- c("species", "longevity", "sexualmature", "shadetolerance",
-                  "firetolerance", "seeddistance_eff", "seeddistance_max",
-                  "resproutprob", "resproutage_min", "resproutage_max",
-                  "postfireregen")
-    names(species) <- colNames
-    species[, ':='(seeddistance_eff = gsub(",", "", seeddistance_eff),
-                   seeddistance_max = gsub(",", "", seeddistance_max))]
-    # change all columns to integer
-    species <- species[, lapply(.SD, as.integer), .SDcols = names(species)[-c(1,NCOL(species))],
-                       by = "species,postfireregen"]
-    setcolorder(species, colNames)
-    
-    # get additional species traits
-    speciesAddon <- mainInput
-    startRow <- which(speciesAddon$col1 == "SpeciesParameters")
-    speciesAddon <- speciesAddon[(startRow + 1):(startRow + nrow(species)), 1:6, with = FALSE]
-    names(speciesAddon) <- c("species", "leaflongevity", "wooddecayrate",
-                             "mortalityshape", "growthcurve", "leafLignin")
-    speciesAddon[, ':='(leaflongevity = as.numeric(leaflongevity),
-                        wooddecayrate = as.numeric(wooddecayrate),
-                        mortalityshape = as.numeric(mortalityshape),
-                        growthcurve = as.numeric(growthcurve),
-                        leafLignin = as.numeric(leafLignin))]
-    
-    species <- setkey(species, species)[setkey(speciesAddon, species), nomatch = 0]
-    
-    ## rename species for compatibility across modules (Xxxx_xxx)
-    species$species1 <- as.character(substring(species$species, 1, 4))
-    species$species2 <- as.character(substring(species$species, 5, 7))
-    species[, ':='(species = paste0(toupper(substring(species1, 1, 1)),
-                                    substring(species1, 2, 4), "_",
-                                    species2))]
-    
-    species[, ':='(species1 = NULL, species2 = NULL)]
-    
-    sim$species <- species
-    rm(maxcol)
+    mainInput <- prepInputsMainInput(url = NULL, dPath, cacheTags) ## uses default URL
+
+    sim$species <- prepInputsSpecies(url = extractURL("species"), dPath, cacheTags)
   }
+
   if (!suppliedElsewhere("speciesEcoregion", sim)) {
     speciesEcoregion <- Cache(prepInputs,
                               url = extractURL("speciesEcoregion"),
@@ -404,15 +340,16 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
     speciesEcoregion <- speciesEcoregion[, keepColNames, with = FALSE]
     integerCols <- c("year", "establishprob", "maxANPP", "maxB")
     speciesEcoregion[, (integerCols) := lapply(.SD, as.integer), .SDcols = integerCols]
-    
-    ## rename species for compatibility across modules (Xxxx_xxx)
+
+    ## TODO: use species equivalency table here
+    ## rename species for compatibility across modules (Genu_spe)
     speciesEcoregion$species1 <- as.character(substring(speciesEcoregion$species, 1, 4))
     speciesEcoregion$species2 <- as.character(substring(speciesEcoregion$species, 5, 7))
     speciesEcoregion[, ':='(species = paste0(toupper(substring(species1, 1, 1)),
                                              substring(species1, 2, 4), "_", species2))]
-    
+
     speciesEcoregion[, ':='(species1 = NULL, species2 = NULL)]
-    
+
     sim$speciesEcoregion <- speciesEcoregion
     rm(maxcol)
   }

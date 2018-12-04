@@ -67,7 +67,7 @@ defineModule(sim, list(
     createsOutput("updateSpeciesEcoregionAttributes", "function",
                   desc = "function to add/update species ecoregion attributes in species cohort table")
    )
-  ))
+))
 
 ## event types
 #   - type `init` is required for initialiazation

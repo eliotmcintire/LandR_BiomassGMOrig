@@ -331,7 +331,7 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
                               stringsAsFactors = FALSE)
     maxcol <- max(count.fields(file.path(dPath, "biomass-succession-dynamic-inputs_test.txt"),
                                sep = ""))
-    colnames(speciesEcoregion) <- paste("col",1:maxcol, sep = "")
+    colnames(speciesEcoregion) <- paste("col", 1:maxcol, sep = "")
     speciesEcoregion <- data.table(speciesEcoregion)
     speciesEcoregion <- speciesEcoregion[col1 != "LandisData",]
     speciesEcoregion <- speciesEcoregion[col1 != ">>",]

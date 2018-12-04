@@ -319,39 +319,8 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
   }
 
   if (!suppliedElsewhere("speciesEcoregion", sim)) {
-    speciesEcoregion <- Cache(prepInputs,
-                              url = extractURL("speciesEcoregion"),
-                              fun = "utils::read.table",
-                              destinationPath = dPath,
-                              targetFile = "biomass-succession-dynamic-inputs_test.txt",
-                              fill = TRUE,
-                              sep = "",
-                              header = FALSE,
-                              blank.lines.skip = TRUE,
-                              stringsAsFactors = FALSE)
-    maxcol <- max(count.fields(file.path(dPath, "biomass-succession-dynamic-inputs_test.txt"),
-                               sep = ""))
-    colnames(speciesEcoregion) <- paste("col", 1:maxcol, sep = "")
-    speciesEcoregion <- data.table(speciesEcoregion)
-    speciesEcoregion <- speciesEcoregion[col1 != "LandisData",]
-    speciesEcoregion <- speciesEcoregion[col1 != ">>",]
-    keepColNames <- c("year", "ecoregion", "species", "establishprob", "maxANPP", "maxB")
-    names(speciesEcoregion)[1:6] <- keepColNames
-    speciesEcoregion <- speciesEcoregion[, keepColNames, with = FALSE]
-    integerCols <- c("year", "establishprob", "maxANPP", "maxB")
-    speciesEcoregion[, (integerCols) := lapply(.SD, as.integer), .SDcols = integerCols]
-
-    ## TODO: use species equivalency table here
-    ## rename species for compatibility across modules (Genu_spe)
-    speciesEcoregion$species1 <- as.character(substring(speciesEcoregion$species, 1, 4))
-    speciesEcoregion$species2 <- as.character(substring(speciesEcoregion$species, 5, 7))
-    speciesEcoregion[, ':='(species = paste0(toupper(substring(species1, 1, 1)),
-                                             substring(species1, 2, 4), "_", species2))]
-
-    speciesEcoregion[, ':='(species1 = NULL, species2 = NULL)]
-
-    sim$speciesEcoregion <- speciesEcoregion
-    rm(maxcol)
+    sim$speciesEcoregion <- prepInputsSpeciesEcoregion(url = extractURL("speciesEcoregion"),
+                                                       dPath = dPath, cacheTags = cacheTags)
   }
 
   return(invisible(sim))

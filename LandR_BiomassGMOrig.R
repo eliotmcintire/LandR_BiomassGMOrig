@@ -99,15 +99,6 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
 
 ## event functions
 Init <- function(sim) {
-  ## export local functions to simList
-  sim$updateSpeciesEcoregionAttributes <- updateSpeciesEcoregionAttributes
-  sim$updateSpeciesAttributes <- updateSpeciesAttributes
-  sim$calculateSumB <- calculateSumB
-  sim$calculateAgeMortality <- calculateAgeMortality
-  sim$calculateANPP <- calculateANPP
-  sim$calculateGrowthMortality <- calculateGrowthMortality
-  sim$calculateCompetition <- calculateCompetition
-
   return(invisible(sim))
 }
 
@@ -301,7 +292,7 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
     set(cohortData, NULL, "bPot", NULL)
     set(cohortData, NULL, "cMultiplier", pmax(as.numeric(cohortData$B^0.95), 1))
     cohortData[, cMultTotal := sum(cMultiplier), by = pixelGroup]
-    set(cohortData, NULL, "bPM", cohortData$cMultiplier/cohortData$cMultTotal)
+    set(cohortData, NULL, "bPM", cohortData$cMultiplier / cohortData$cMultTotal)
     set(cohortData, NULL, c("cMultiplier", "cMultTotal"), NULL)
   }
   return(cohortData)
@@ -322,6 +313,15 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
     sim$speciesEcoregion <- prepInputsSpeciesEcoregion(url = extractURL("speciesEcoregion"),
                                                        dPath = dPath, cacheTags = cacheTags)
   }
+
+  ## export local functions to simList
+  sim$updateSpeciesEcoregionAttributes <- updateSpeciesEcoregionAttributes
+  sim$updateSpeciesAttributes <- updateSpeciesAttributes
+  sim$calculateSumB <- calculateSumB
+  sim$calculateAgeMortality <- calculateAgeMortality
+  sim$calculateANPP <- calculateANPP
+  sim$calculateGrowthMortality <- calculateGrowthMortality
+  sim$calculateCompetition <- calculateCompetition
 
   return(invisible(sim))
 }

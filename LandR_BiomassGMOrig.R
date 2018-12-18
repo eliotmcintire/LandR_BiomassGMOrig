@@ -299,8 +299,9 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
 }
 
 .inputObjects <- function(sim) {
-  cacheTags <- c(currentModule(sim), "function:.inputObjects", "function:spades")
-  dPath <- asPath(dataPath(sim))
+  cacheTags <- c(currentModule(sim), "function:.inputObjects")
+  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   # read species txt and convert it to data table
   if (!suppliedElsewhere("species", sim)) {

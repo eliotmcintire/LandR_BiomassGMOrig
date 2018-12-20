@@ -1,4 +1,3 @@
-
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
@@ -18,7 +17,7 @@ defineModule(sim, list(
                   "PredictiveEcology/pemisc@development"), ## TODO: update package list
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
-    defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),
+    defineParameter("calibrate", "logical", FALSE, NA, NA, "should the model have detailed outputs?"),
     defineParameter("growthInitialTime", "numeric", default = 0, min = NA_real_, max = NA_real_,
                     desc = "Initial time for the growth event to occur"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA,
@@ -68,7 +67,7 @@ defineModule(sim, list(
                   desc = "function to add/update species attributes in species cohort table"),
     createsOutput("updateSpeciesEcoregionAttributes", "function",
                   desc = "function to add/update species ecoregion attributes in species cohort table")
-   )
+  )
 ))
 
 ## event types
@@ -83,11 +82,9 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
          init = {
            ## do stuff for this event
            sim <- Init(sim)
-
            sim <- scheduleEvent(sim, start(sim) + P(sim)$growthInitialTime,
                                 "LandR_BiomassGMOrig", "mortalityAndGrowth", eventPriority = 5)
          },
-
          mortalityAndGrowth = {
            sim <- MortalityAndGrowth(sim)
            sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
@@ -98,25 +95,22 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
   )
   return(invisible(sim))
 }
-
 ## event functions
 Init <- function(sim) {
   return(invisible(sim))
 }
-
 MortalityAndGrowth <- function(sim) {
   if (is.numeric(P(sim)$useParallel)) {
     data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
   }
-
   sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                        speciesCode, age, B, mortality, aNPPAct)]
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
   pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),
                             temID = 1:length(unique(cohortData$pixelGroup)))
-  cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = 10^4), max(pixelGroups$temID))))
+  cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = 10^5), max(pixelGroups$temID))))
   #cutpoints <- c(1,max(pixelGroups$temID))
   if (length(cutpoints) == 1) cutpoints <- c(cutpoints, cutpoints + 1)
   pixelGroups[, groups := cut(temID, breaks = cutpoints,
@@ -131,10 +125,35 @@ MortalityAndGrowth <- function(sim) {
                                                       cohortData = subCohortData)
     subCohortData <- updateSpeciesAttributes(species = sim$species, cohortData = subCohortData)
     subCohortData <- calculateSumB(cohortData = subCohortData,
-                                       lastReg = sim$lastReg,
-                                       simuTime = time(sim),
-                                       successionTimestep = P(sim)$successionTimestep)
-    subCohortData <- subCohortData[age <= longevity,]
+                                   lastReg = sim$lastReg,
+                                   simuTime = time(sim),
+                                   successionTimestep = P(sim)$successionTimestep)
+    startNumCohorts <- NROW(subCohortData)
+    
+    #########################################################
+    # Die from old age -- rm from cohortData
+    #########################################################
+    subCohortPostLongevity <- subCohortData[age <= longevity,]
+    postLongevityDieOffNumCohorts <- NROW(subCohortPostLongevity)
+    numCohortsDiedOldAge <- startNumCohorts - postLongevityDieOffNumCohorts
+    if ((numCohortsDiedOldAge) > 0) {
+      diedCohortData <- subCohortData[!subCohortPostLongevity, on = c("pixelGroup", "speciesCode"),
+                                      .(pixelGroup, speciesCode, ecoregionGroup, age)]
+      message(numCohortsDiedOldAge, " cohorts died of old age (i.e., due to passing longevity); ",
+              sum(is.na(diedCohortData$age)), " of those because age == NA; ",
+              length(unique(diedCohortData$pixelGroup)), " pixelGroups to be removed")
+      # Identify the PGs that are totally gone, not just an individual cohort that died
+      pgsToRm <- diedCohortData[!diedCohortData$pixelGroup %in% subCohortPostLongevity$pixelGroup]
+      pgsToRm <- which(getValues(sim$pixelGroupMap) %in% unique(pgsToRm$pixelGroup))
+      # RM from the pixelGroupMap -- since it is a whole pixelGroup that is gone, not just a cohort, this is necessary
+      if (isTRUE(getOption("LandR.assertions"))) {
+        a <- subCohortPostLongevity$pixelGroup %in% na.omit(getValues(sim$pixelGroupMap))
+        if (!all(a))
+          stop("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
+      }
+      sim$pixelGroupMap[pgsToRm] <- 0L
+    }
+    subCohortData <- subCohortPostLongevity
     subCohortData <- calculateAgeMortality(cohortData = subCohortData)
     set(subCohortData, NULL, c("longevity", "mortalityshape"), NULL)
     subCohortData <- calculateCompetition(cohortData = subCohortData)
@@ -156,7 +175,6 @@ MortalityAndGrowth <- function(sim) {
       tempcohortdata <- subCohortData[,.(pixelGroup, Year = time(sim), siteBiomass = sumB, speciesCode,
                                          Age = age, iniBiomass = B - deltaB, ANPP = round(aNPPAct, 1),
                                          Mortality = round(mortality,1), deltaB, finBiomass = B)]
-
       tempcohortdata <- setkey(tempcohortdata, speciesCode)[
         setkey(sim$species[, .(species, speciesCode)], speciesCode),
         nomatch = 0][, ':='(speciesCode = species, species = NULL, pixelGroup = NULL)]
@@ -169,7 +187,7 @@ MortalityAndGrowth <- function(sim) {
     }
     sim$cohortData <- rbindlist(list(sim$cohortData, subCohortData))
     rm(subCohortData)
-    gc() # TODO: use .gc()
+    # .gc() # TODO: use .gc()
   }
   rm(cohortData, cutpoints, pixelGroups)
   return(invisible(sim))
@@ -179,19 +197,15 @@ MortalityAndGrowth <- function(sim) {
   cacheTags <- c(currentModule(sim), "function:.inputObjects")
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
   # read species txt and convert it to data table
   if (!suppliedElsewhere("species", sim)) {
     mainInput <- prepInputsMainInput(url = NULL, dPath, cacheTags) ## uses default URL
-
     sim$species <- prepInputsSpecies(url = extractURL("species"), dPath, cacheTags)
   }
-
   if (!suppliedElsewhere("speciesEcoregion", sim)) {
     sim$speciesEcoregion <- prepInputsSpeciesEcoregion(url = extractURL("speciesEcoregion"),
                                                        dPath = dPath, cacheTags = cacheTags)
   }
-
   ## export local functions to simList
   sim$updateSpeciesEcoregionAttributes <- updateSpeciesEcoregionAttributes
   sim$updateSpeciesAttributes <- updateSpeciesAttributes
@@ -200,6 +214,5 @@ MortalityAndGrowth <- function(sim) {
   sim$calculateANPP <- calculateANPP
   sim$calculateGrowthMortality <- calculateGrowthMortality
   sim$calculateCompetition <- calculateCompetition
-
   return(invisible(sim))
 }

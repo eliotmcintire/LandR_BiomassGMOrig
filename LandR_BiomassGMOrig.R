@@ -13,7 +13,9 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandR_BiomassGMOrig"),
-  reqdPkgs = list("data.table", "raster", "PredictiveEcology/pemisc@development"), ## TODO: update package list
+  reqdPkgs = list("data.table", "raster",
+                  #"PredictiveEcology/LandR@development",
+                  "PredictiveEcology/pemisc@development"), ## TODO: update package list
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("calibrate", "logical", TRUE, NA, NA, "should the model have detailed outputs?"),

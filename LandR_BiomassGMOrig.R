@@ -13,7 +13,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "LandR_BiomassGMOrig"),
   reqdPkgs = list("data.table", "raster",
-                  #"PredictiveEcology/LandR@development",
+                  "PredictiveEcology/LandR@development",
                   "PredictiveEcology/pemisc@development"), ## TODO: update package list
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
@@ -129,7 +129,7 @@ MortalityAndGrowth <- function(sim) {
                                    simuTime = time(sim),
                                    successionTimestep = P(sim)$successionTimestep)
     startNumCohorts <- NROW(subCohortData)
-    
+
     #########################################################
     # Die from old age -- rm from cohortData
     #########################################################

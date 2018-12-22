@@ -100,6 +100,8 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 MortalityAndGrowth <- function(sim) {
+  #sim1 <- Copy(sim)
+  #sim <- Copy(sim1)
   if (is.numeric(P(sim)$useParallel)) {
     data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
@@ -148,10 +150,15 @@ MortalityAndGrowth <- function(sim) {
       # RM from the pixelGroupMap -- since it is a whole pixelGroup that is gone, not just a cohort, this is necessary
       if (isTRUE(getOption("LandR.assertions"))) {
         a <- subCohortPostLongevity$pixelGroup %in% na.omit(getValues(sim$pixelGroupMap))
-        if (!all(a))
-          stop("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
+        if (!all(a)) {
+          warning("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
+          browser()
+        }
       }
       sim$pixelGroupMap[pgsToRm] <- 0L
+      if (isTRUE(getOption("LandR.assertions"))) {
+        testCohortData(subCohortPostLongevity, sim$pixelGroupMap, message = "MortalityAndGrowth")
+      }
     }
     subCohortData <- subCohortPostLongevity
     subCohortData <- calculateAgeMortality(cohortData = subCohortData)
@@ -185,11 +192,14 @@ MortalityAndGrowth <- function(sim) {
       set(subCohortData, NULL, "B",
           subCohortData$B + as.integer(subCohortData$aNPPAct - subCohortData$mortality))
     }
-    sim$cohortData <- rbindlist(list(sim$cohortData, subCohortData))
+    sim$cohortData <- rbindlist(list(sim$cohortData, subCohortData), fill = TRUE)
     rm(subCohortData)
     # .gc() # TODO: use .gc()
   }
   rm(cohortData, cutpoints, pixelGroups)
+  if (isTRUE(getOption("LandR.assertions"))) {
+    testCohortData(sim$cohortData, sim$pixelGroupMap)
+  }
   return(invisible(sim))
 }
 

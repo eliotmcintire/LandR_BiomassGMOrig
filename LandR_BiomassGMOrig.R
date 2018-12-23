@@ -100,8 +100,6 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 MortalityAndGrowth <- function(sim) {
-  #sim1 <- Copy(sim)
-  #sim <- Copy(sim1)
   if (is.numeric(P(sim)$useParallel)) {
     data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")

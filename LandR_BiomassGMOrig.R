@@ -197,6 +197,14 @@ MortalityAndGrowth <- function(sim) {
     # .gc() # TODO: use .gc()
   }
   rm(cohortData, cutpoints, pixelGroups)
+
+  if (isTRUE(getOption("LandR.assertions"))) {
+    if (NROW(unique(sim$cohortData[pixelGroup == 67724]$ecoregionGroup)) > 1) stop()
+    if (!identical(NROW(sim$cohortData), NROW(unique(sim$cohortData, by = c("pixelGroup", "speciesCode", "age", "B"))))) {
+      stop("sim$cohortData has duplicated rows, i.e., multiple rows with the same pixelGroup, speciesCode and age")
+    }
+
+  }
   if (isTRUE(getOption("LandR.assertions"))) {
     testCohortData(sim$cohortData, sim$pixelGroupMap)
   }

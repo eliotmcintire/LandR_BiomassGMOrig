@@ -149,8 +149,7 @@ MortalityAndGrowth <- function(sim) {
       if (isTRUE(getOption("LandR.assertions"))) {
         a <- subCohortPostLongevity$pixelGroup %in% na.omit(getValues(sim$pixelGroupMap))
         if (!all(a)) {
-          warning("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
-          browser()
+          stop("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
         }
       }
       sim$pixelGroupMap[pgsToRm] <- 0L

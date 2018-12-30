@@ -119,7 +119,7 @@ MortalityAndGrowth <- function(sim) {
   for (subgroup in paste("Group", 1:(length(cutpoints) - 1), sep = "")) {
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
-    set(subCohortData, NULL, "age", subCohortData$age + 1)
+    set(subCohortData, NULL, "age", subCohortData$age + 1L)
     subCohortData <- updateSpeciesEcoregionAttributes(speciesEcoregion = sim$speciesEcoregion,
                                                       time = round(time(sim)),
                                                       cohortData = subCohortData)
@@ -174,7 +174,7 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
     if (P(sim)$calibrate) {
-      set(subCohortData, NULL, "deltaB", as.integer(subCohortData$aNPPAct - subCohortData$mortality))
+      set(subCohortData, NULL, "deltaB", asInteger(subCohortData$aNPPAct - subCohortData$mortality))
       set(subCohortData, NULL, "B", subCohortData$B + subCohortData$deltaB)
       tempcohortdata <- subCohortData[,.(pixelGroup, Year = time(sim), siteBiomass = sumB, speciesCode,
                                          Age = age, iniBiomass = B - deltaB, ANPP = round(aNPPAct, 1),
@@ -187,8 +187,9 @@ MortalityAndGrowth <- function(sim) {
       set(subCohortData, NULL, c("deltaB", "sumB"), NULL)
     } else {
       set(subCohortData, NULL, "B",
-          subCohortData$B + as.integer(subCohortData$aNPPAct - subCohortData$mortality))
+          subCohortData$B + asInteger(subCohortData$aNPPAct - subCohortData$mortality))
     }
+    subCohortData[, `:=`(mortality = asInteger(mortality), aNPPAct = asInteger(aNPPAct))]
     sim$cohortData <- rbindlist(list(sim$cohortData, subCohortData), fill = TRUE)
     rm(subCohortData)
     # .gc() # TODO: use .gc()

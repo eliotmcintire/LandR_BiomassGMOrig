@@ -104,18 +104,23 @@ MortalityAndGrowth <- function(sim) {
     data.table::setDTthreads(P(sim)$useParallel)
     message("Mortality and Growth should be using >100% CPU")
   }
-  sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
-                                       speciesCode, age, B, mortality, aNPPAct)]
+  if (!all(colnames(sim$cohortData) %in% c("pixelGroup", "ecoregionGroup",
+                                     "speciesCode", "age", "B", "mortality", "aNPPAct")))
+    sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
+                                         speciesCode, age, B, mortality, aNPPAct)]
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
   pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),
                             temID = 1:length(unique(cohortData$pixelGroup)))
-  cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = 10^5), max(pixelGroups$temID))))
+  groupSize <- 1e5
+  cutpoints <- sort(unique(c(seq(1, max(pixelGroups$temID), by = groupSize), max(pixelGroups$temID))))
   #cutpoints <- c(1,max(pixelGroups$temID))
   if (length(cutpoints) == 1) cutpoints <- c(cutpoints, cutpoints + 1)
-  pixelGroups[, groups := cut(temID, breaks = cutpoints,
-                              labels = paste("Group", 1:(length(cutpoints) - 1), sep = ""),
-                              include.lowest = T)]
+  pixelGroups[, groups := rep(paste0("Group", seq(length(cutpoints)-1)),
+                              each = groupSize, length.out = NROW(pixelGroups))]
+  # pixelGroups[, groups1 := cut(temID, breaks = cutpoints,
+  #                             labels = paste("Group", 1:(length(cutpoints) - 1), sep = ""),
+  #                             include.lowest = FALSE)]
   for (subgroup in paste("Group", 1:(length(cutpoints) - 1), sep = "")) {
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
@@ -144,7 +149,7 @@ MortalityAndGrowth <- function(sim) {
               length(unique(diedCohortData$pixelGroup)), " pixelGroups to be removed")
       # Identify the PGs that are totally gone, not just an individual cohort that died
       pgsToRm <- diedCohortData[!diedCohortData$pixelGroup %in% subCohortPostLongevity$pixelGroup]
-      pgsToRm <- which(getValues(sim$pixelGroupMap) %in% unique(pgsToRm$pixelGroup))
+      pixelsToRm <- which(getValues(sim$pixelGroupMap) %in% unique(pgsToRm$pixelGroup))
       # RM from the pixelGroupMap -- since it is a whole pixelGroup that is gone, not just a cohort, this is necessary
       if (isTRUE(getOption("LandR.assertions"))) {
         a <- subCohortPostLongevity$pixelGroup %in% na.omit(getValues(sim$pixelGroupMap))
@@ -152,9 +157,8 @@ MortalityAndGrowth <- function(sim) {
           stop("Post longevity-based mortality, there is a divergence between pixelGroupMap and cohortData pixelGroups")
         }
       }
-      sim$pixelGroupMap[pgsToRm] <- 0L
-      if (isTRUE(getOption("LandR.assertions"))) {
-        testCohortData(subCohortPostLongevity, sim$pixelGroupMap, message = "MortalityAndGrowth")
+      if (length(pixelsToRm) > 0) {
+        sim$pixelGroupMap[pixelsToRm] <- 0L
       }
     }
     subCohortData <- subCohortPostLongevity

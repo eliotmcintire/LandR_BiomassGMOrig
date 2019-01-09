@@ -207,9 +207,7 @@ MortalityAndGrowth <- function(sim) {
     }
 
   }
-  if (isTRUE(getOption("LandR.assertions"))) {
-    testCohortData(sim$cohortData, sim$pixelGroupMap)
-  }
+  testCohortData(sim$cohortData, sim$pixelGroupMap)
   return(invisible(sim))
 }
 

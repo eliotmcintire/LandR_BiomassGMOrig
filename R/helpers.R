@@ -20,7 +20,8 @@ updateSpeciesEcoregionAttributes <- function(speciesEcoregion, time, cohortData)
                                speciesCode, ecoregionGroup)
   specieseco_current[, maxB_eco := max(maxB), by = ecoregionGroup]
 
-  cohortData <- specieseco_current[cohortData, on = c("speciesCode", "ecoregionGroup")]#[specieseco_current, nomatch = NA]
+  cohortData <- specieseco_current[cohortData, on = c("speciesCode", "ecoregionGroup"),
+                                   nomatch = NA]#[specieseco_current, nomatch = NA]
   return(cohortData)
 }
 

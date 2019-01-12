@@ -144,9 +144,6 @@ MortalityAndGrowth <- function(sim) {
     if ((numCohortsDiedOldAge) > 0) {
       diedCohortData <- subCohortData[!subCohortPostLongevity, on = c("pixelGroup", "speciesCode"),
                                       .(pixelGroup, speciesCode, ecoregionGroup, age)]
-      message(numCohortsDiedOldAge, " cohorts died of old age (i.e., due to passing longevity); ",
-              sum(is.na(diedCohortData$age)), " of those because age == NA; ",
-              length(unique(diedCohortData$pixelGroup)), " pixelGroups to be removed")
       # Identify the PGs that are totally gone, not just an individual cohort that died
       pgsToRm <- diedCohortData[!diedCohortData$pixelGroup %in% subCohortPostLongevity$pixelGroup]
       pixelsToRm <- which(getValues(sim$pixelGroupMap) %in% unique(pgsToRm$pixelGroup))
@@ -158,7 +155,21 @@ MortalityAndGrowth <- function(sim) {
         }
       }
       if (length(pixelsToRm) > 0) {
+        if (getOption("LandR.verbose", TRUE) > 0) {
+          numPixelGrps <- sum(sim$pixelGroupMap[]!=0, na.rm = TRUE)
+        }
         sim$pixelGroupMap[pixelsToRm] <- 0L
+        if (getOption("LandR.verbose", TRUE) > 1) {
+          message(blue("Death due to old age:",
+                       "\n  ", numCohortsDiedOldAge, "cohorts died of old age (i.e., due to passing longevity); ",
+                       sum(is.na(diedCohortData$age)), " of those because age == NA; ",
+                       "\n  ", NROW(unique(pgsToRm$pixelGroup)), "pixelGroups to be removed (i.e., ",
+                       "\n  ", length(pixelsToRm), "pixels; "))
+        }
+        if (getOption("LandR.verbose", TRUE) > 0) {
+          message(blue("\n   Total number of pixelGroups -- Was:", numPixelGrps,
+                       ", Now:", magenta(sum(sim$pixelGroupMap[]!=0, na.rm = TRUE))))
+        }
       }
     }
     subCohortData <- subCohortPostLongevity
@@ -207,7 +218,7 @@ MortalityAndGrowth <- function(sim) {
     }
 
   }
-  testCohortData(sim$cohortData, sim$pixelGroupMap)
+  assertCohortData(sim$cohortData, sim$pixelGroupMap)
   return(invisible(sim))
 }
 

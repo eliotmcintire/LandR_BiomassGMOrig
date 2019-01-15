@@ -10,13 +10,15 @@
 #'
 #' @export
 #' @importFrom data.table setkey
+#' @importFrom LandR speciesEcoregionLatestYear
 updateSpeciesEcoregionAttributes <- function(speciesEcoregion, time, cohortData) {
   # the following codes were for updating cohortdata using speciesecoregion data at current simulation year
   # to assign maxB, maxANPP and maxB_eco to cohortData
-  specieseco_current <- speciesEcoregion[year <= time]
-  specieseco_current <- setkey(specieseco_current[year == max(year),
-                                                  .(speciesCode, maxANPP,
-                                                    maxB, ecoregionGroup)],
+  specieseco_current <- speciesEcoregionLatestYear(speciesEcoregion, time)
+
+  #specieseco_current <- speciesEcoregion[year <= time]
+  specieseco_current <- setkey(specieseco_current[, .(speciesCode, maxANPP,
+                                                      maxB, ecoregionGroup)],
                                speciesCode, ecoregionGroup)
   specieseco_current[, maxB_eco := max(maxB), by = ecoregionGroup]
 

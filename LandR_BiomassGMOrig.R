@@ -99,6 +99,7 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
 Init <- function(sim) {
   return(invisible(sim))
 }
+
 MortalityAndGrowth <- function(sim) {
   if (is.numeric(P(sim)$.useParallel)) {
     data.table::setDTthreads(P(sim)$.useParallel)

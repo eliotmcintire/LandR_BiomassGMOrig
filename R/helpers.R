@@ -220,3 +220,27 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
 calculateClimateEffect <- function(...) {
   NULL
 }
+
+#' calculateClimateMortality
+#'
+#' TODO: description and title needed
+#'
+#' @return NULL estimate of mortality due to climate
+#'
+#' @export
+calculateClimateMortality <- function(...) {
+  0
+}
+
+#' calculateClimateGrowth
+#'
+#' TODO: description and title needed
+#'
+#' @return NULL estimate of growth due to climate
+#'
+#' @export
+calculateClimateGrowth <- function(...) {
+  0
+}
+
+

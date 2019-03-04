@@ -108,6 +108,7 @@ MortalityAndGrowth <- function(sim) {
                                      "speciesCode", "age", "B", "mortality", "aNPPAct")))
     sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                          speciesCode, age, B, mortality, aNPPAct)]
+  predObj <- calculateClimateEffect() #will be NULL if biomassGMCS missing
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
   pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),
@@ -183,10 +184,19 @@ MortalityAndGrowth <- function(sim) {
     subCohortData <- calculateANPP(cohortData = subCohortData)
     set(subCohortData, NULL, "growthcurve", NULL)
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
+    browser()
+    #This line will return aNPPAct unchagned unless LandR_BiomassGMCS is also run
+    subCohortData$aNPPAct <- subCohortData$aNPPAct + calculateClimateGrowth(predObj) 
+    
     subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
     set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
     set(subCohortData, NULL, "mBio", pmin(subCohortData$mBio, subCohortData$aNPPAct))
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
+    
+    browser()
+    #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
+    subCohortData$mortality <- subCohortData$mortality + calculateClimateMortality(predObj)
+    
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
     if (P(sim)$calibrate) {
       set(subCohortData, NULL, "deltaB", asInteger(subCohortData$aNPPAct - subCohortData$mortality))

@@ -209,3 +209,14 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
   }
   return(cohortData)
 }
+
+#' calculateClimateEffect
+#'
+#' TODO: description and title needed
+#'
+#' @return NULL estimate of climate sensitivity effect
+#'
+#' @export
+calculateClimateEffect <- function(...) {
+  NULL
+}

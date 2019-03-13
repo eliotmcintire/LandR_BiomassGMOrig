@@ -31,7 +31,7 @@ defineModule(sim, list(
                     desc = paste("Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads,",
                                  "if logical and TRUE, it will be passed to parallel::makeCluster,",
                                  "and if cluster object it will be passed to parallel::parClusterApplyLB")),
-    defineParameter("growthAndMortalityDrivers", "LandR", NA, NA, 
+    defineParameter("growthAndMortalityDrivers", "characacter", "LandR", NA, NA, 
                     desc = "package name where the following functions can be found: calculateClimateEffect,
                     calculateClimateGrowth, calculateClimateMortality")
   ),

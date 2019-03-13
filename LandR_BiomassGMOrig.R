@@ -112,7 +112,7 @@ MortalityAndGrowth <- function(sim) {
     sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                          speciesCode, age, B, mortality, aNPPAct)]
   getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
-  predObj <- calculateCliamteEffect(PSPmodelData = sim$PSPmodelData,
+  predObj <- calculateClimateEffect(PSPmodelData = sim$PSPmodelData,
                          CMD = sim$CMD,
                          ATA = sim$ATA,
                          cohortData = sim$cohortData) # NULL w/o module biomassGMCS

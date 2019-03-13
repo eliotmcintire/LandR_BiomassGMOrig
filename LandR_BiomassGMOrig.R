@@ -30,7 +30,9 @@ defineModule(sim, list(
     defineParameter(".useParallel", "ANY", default = parallel::detectCores(),
                     desc = paste("Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads,",
                                  "if logical and TRUE, it will be passed to parallel::makeCluster,",
-                                 "and if cluster object it will be passed to parallel::parClusterApplyLB"))
+                                 "and if cluster object it will be passed to parallel::parClusterApplyLB")),
+    defineParameter("growthAndMortalityDrivers", "LandR", NA, NA, 
+                    desc = "package name where the following functions can be found: ")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -108,7 +110,11 @@ MortalityAndGrowth <- function(sim) {
                                      "speciesCode", "age", "B", "mortality", "aNPPAct")))
     sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                          speciesCode, age, B, mortality, aNPPAct)]
-  predObj <- calculateClimateEffect() #will be NULL if biomassGMCS missing
+  predObj <- getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
+  calculateCliamteEffect(PSPmodelData = sim$PSPmodelData,
+                         CMD = sim$CMD,
+                         ATA = sim$ATA,
+                         cohortData = sim$cohortData) # NULL w/o module biomassGMCS
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
   pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),

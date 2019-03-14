@@ -253,9 +253,6 @@ MortalityAndGrowth <- function(sim) {
                                                        dPath = dPath, cacheTags = cacheTags)
   }
   
-  if (!suppliedElsewhere("calculateClimateEffect", sim)) {
-    sim$calculateClimateEffect <- calculateClimateEffect
-  }
   ## export local functions to simList
   sim$updateSpeciesEcoregionAttributes <- updateSpeciesEcoregionAttributes
   sim$updateSpeciesAttributes <- updateSpeciesAttributes

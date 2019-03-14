@@ -209,38 +209,3 @@ calculateCompetition <- function(cohortData, stage = "nonSpinup") {
   }
   return(cohortData)
 }
-
-#' calculateClimateEffect
-#'
-#' TODO: description and title needed
-#'
-#' @return NULL estimate of climate sensitivity effect
-#'
-#' @export
-calculateClimateEffect <- function(...) {
-  NULL
-}
-
-#' calculateClimateMortality
-#'
-#' TODO: description and title needed
-#'
-#' @return NULL estimate of mortality due to climate
-#'
-#' @export
-calculateClimateMortality <- function(...) {
-  0
-}
-
-#' calculateClimateGrowth
-#'
-#' TODO: description and title needed
-#'
-#' @return NULL estimate of growth due to climate
-#'
-#' @export
-calculateClimateGrowth <- function(...) {
-  0
-}
-
-

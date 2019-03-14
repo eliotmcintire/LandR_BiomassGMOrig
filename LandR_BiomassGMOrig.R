@@ -111,7 +111,15 @@ MortalityAndGrowth <- function(sim) {
                                      "speciesCode", "age", "B", "mortality", "aNPPAct")))
     sim$cohortData <- sim$cohortData[, .(pixelGroup, ecoregionGroup,
                                          speciesCode, age, B, mortality, aNPPAct)]
-  getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
+  #Install climate-sensitive functions (or not)
+  a <- try(requireNamespace(P(sim)$growthAndMortalityDrivers)) #This is not working. requireNamespace overrides try
+  if (class(a) == "try-error") {
+    stop("The package you specified for P(sim)$growthAndMortalityDrivers must be installed.")
+  }
+  calculateClimateEffect <- getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
+  calculateClimateEffect <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
+  calculateClimateEffect <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
+  
   predObj <- calculateClimateEffect(PSPmodelData = sim$PSPmodelData,
                          CMD = sim$CMD,
                          ATA = sim$ATA,

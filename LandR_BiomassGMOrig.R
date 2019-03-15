@@ -117,8 +117,8 @@ MortalityAndGrowth <- function(sim) {
     stop("The package you specified for P(sim)$growthAndMortalityDrivers must be installed.")
   }
   calculateClimateEffect <- getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
-  calculateClimateEffect <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
-  calculateClimateEffect <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
+  calculateClimateMortality <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
+  calculateClimateGrowth <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
   
   predObj <- calculateClimateEffect(PSPmodelData = sim$PSPmodelData,
                          CMD = sim$CMD,

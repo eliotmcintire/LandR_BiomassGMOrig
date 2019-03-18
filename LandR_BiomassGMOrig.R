@@ -120,7 +120,7 @@ MortalityAndGrowth <- function(sim) {
   calculateClimateMortality <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
   calculateClimateGrowth <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
 
-  predObj <- calculateClimateEffect(PSPmodelData = sim$PSPmodelData,
+  predObj <- calculateClimateEffect(gmcsModel = sim$gmcsModel,
                          CMD = sim$CMD,
                          ATA = sim$ATA,
                          cohortData = sim$cohortData,

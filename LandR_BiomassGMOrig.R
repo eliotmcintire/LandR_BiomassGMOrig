@@ -120,12 +120,15 @@ MortalityAndGrowth <- function(sim) {
   calculateClimateMortality <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
   calculateClimateGrowth <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
 
+  # NULL w/o module biomassGMCS
   predObj <- calculateClimateEffect(gcsModel = sim$gcsModel,
                                     mcsModel = sim$mcsModel,
                                     CMD = sim$CMD,
                                     ATA = sim$ATA,
                                     cohortData = sim$cohortData,
-                                    pixelGroupMap = sim$pixelGroupMap) # NULL w/o module biomassGMCS
+                                    pixelGroupMap = sim$pixelGroupMap,
+                                    centeringVec = sim$centeringVec) 
+  
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
   pixelGroups <- data.table(pixelGroupIndex = unique(cohortData$pixelGroup),

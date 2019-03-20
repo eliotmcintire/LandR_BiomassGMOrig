@@ -120,7 +120,10 @@ MortalityAndGrowth <- function(sim) {
   calculateClimateMortality <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
   calculateClimateGrowth <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
 
-  # NULL w/o module biomassGMCS
+  # NULL w/o module biomassGMCS. age-related mortality is included in this model
+  # 20/03/2019 IE: after discussion we determined it is acceptable to include age
+  #because 1) the Landis age-related mortality fxn is very different from this model, 
+  #and 2) because it would be difficult to separate the climate/age interaction 
   predObj <- calculateClimateEffect(gcsModel = sim$gcsModel,
                                     mcsModel = sim$mcsModel,
                                     CMD = sim$CMD,
@@ -206,7 +209,7 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
     browser()
     #This line will return aNPPAct unchagned unless LandR_BiomassGMCS is also run
-    subCohortData$aNPPAct <- subCohortData$aNPPAct + calculateClimateGrowth(predObj) 
+    subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + calculateClimateGrowth(predObj, subCohortData))) 
     
     subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
     set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
@@ -215,7 +218,7 @@ MortalityAndGrowth <- function(sim) {
     
     browser()
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
-    subCohortData$mortality <- subCohortData$mortality + calculateClimateMortality(predObj)
+    subCohortData$mortality <- pmax(0, (subCohortData$mortality + calculateClimateMortality(predObj, subCohortData)))
     
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
     if (P(sim)$calibrate) {

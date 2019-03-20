@@ -18,8 +18,8 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description")),
     defineParameter("calibrate", "logical", FALSE, NA, NA, "should the model have detailed outputs?"),
-    defineParameter("growthInitialTime", "numeric", default = 0, min = NA_real_, max = NA_real_,
-                    desc = "Initial time for the growth event to occur"),
+    defineParameter("growthInitialTime", "numeric", default = 10, min = NA_real_, max = NA_real_,
+                    desc = "Initial time for the growth event to occur - should be the same as the succession time step used in LBMR"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA,
                     desc = "defines the simulation time step, default is 10 years"),
     defineParameter(".plotInitialTime", "numeric", default = 0, min = NA, max = NA,

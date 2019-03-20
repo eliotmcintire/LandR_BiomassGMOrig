@@ -209,7 +209,8 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
     browser()
     #This line will return aNPPAct unchagned unless LandR_BiomassGMCS is also run
-    subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + calculateClimateGrowth(predObj, subCohortData))) 
+    subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + 
+                                        calculateClimateGrowth(predObj, subCohortData = subCohortData))) 
     
     subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
     set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
@@ -218,7 +219,8 @@ MortalityAndGrowth <- function(sim) {
     
     browser()
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
-    subCohortData$mortality <- pmax(0, (subCohortData$mortality + calculateClimateMortality(predObj, subCohortData)))
+    subCohortData$mortality <- pmax(0, (subCohortData$mortality + 
+                                          calculateClimateMortality(predObj, subCohortData = subCohortData)))
     
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
     if (P(sim)$calibrate) {

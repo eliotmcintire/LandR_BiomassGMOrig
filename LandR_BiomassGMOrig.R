@@ -206,7 +206,7 @@ MortalityAndGrowth <- function(sim) {
     subCohortData <- calculateANPP(cohortData = subCohortData)
     set(subCohortData, NULL, "growthcurve", NULL)
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
-    browser()
+
     #This line will return aNPPAct unchagned unless LandR_BiomassGMCS is also run
     subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + 
                                         assignClimateEffect(predObj,
@@ -218,7 +218,6 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "mBio", pmin(subCohortData$mBio, subCohortData$aNPPAct))
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
     
-    browser()
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
     subCohortData$mortality <- pmax(0, (subCohortData$mortality + 
                                           assignClimateEffect(predObj, 

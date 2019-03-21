@@ -33,7 +33,7 @@ defineModule(sim, list(
                                  "and if cluster object it will be passed to parallel::parClusterApplyLB")),
     defineParameter("growthAndMortalityDrivers", "characacter", "LandR", NA, NA, 
                     desc = "package name where the following functions can be found: calculateClimateEffect,
-                    calculateClimateGrowth, calculateClimateMortality")
+                    assignClimateEffect")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -117,9 +117,8 @@ MortalityAndGrowth <- function(sim) {
     stop("The package you specified for P(sim)$growthAndMortalityDrivers must be installed.")
   }
   calculateClimateEffect <- getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
-  calculateClimateMortality <- getFromNamespace("calculateClimateMortality", P(sim)$growthAndMortalityDrivers)
-  calculateClimateGrowth <- getFromNamespace("calculateClimateGrowth", P(sim)$growthAndMortalityDrivers)
-
+  assignClimateEffect <- getFromNamespace("assignClimateEffect", P(sim)$growthAndMortalityDrivers)
+  
   # NULL w/o module biomassGMCS. age-related mortality is included in this model
   # 20/03/2019 IE: after discussion we determined it is acceptable to include age
   #because 1) the Landis age-related mortality fxn is very different from this model, 

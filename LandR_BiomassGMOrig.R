@@ -20,8 +20,6 @@ defineModule(sim, list(
     defineParameter("calibrate", "logical", FALSE, NA, NA, "should the model have detailed outputs?"),
     defineParameter("growthInitialTime", "numeric", default = start(sim), min = NA_real_, max = NA_real_,
                     desc = "Initial time for the growth event to occur"),
-    defineParameter("growthTimeStep", "numeric", default = 1, min = 1, max = NA_real_, desc = 
-                      "Timestep for growth and mortality functions. In LANDIS-II, every year"),
     defineParameter("successionTimestep", "numeric", 10, NA, NA,
                     desc = "defines the simulation time step, default is 10 years"),
     defineParameter(".plotInitialTime", "numeric", default = 0, min = NA, max = NA,
@@ -92,7 +90,7 @@ doEvent.LandR_BiomassGMOrig = function(sim, eventTime, eventType, debug = FALSE)
          },
          mortalityAndGrowth = {
            sim <- MortalityAndGrowth(sim)
-           sim <- scheduleEvent(sim, time(sim) + P(sim)$growthTimeStep, "LandR_BiomassGMOrig", "mortalityAndGrowth",
+           sim <- scheduleEvent(sim, time(sim) + 1, "LandR_BiomassGMOrig", "mortalityAndGrowth",
                                 eventPriority = 5)
          },
          warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],

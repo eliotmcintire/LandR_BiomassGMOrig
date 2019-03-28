@@ -207,7 +207,7 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "growthcurve", NULL)
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
 
-    #This line will return aNPPAct unchagned unless LandR_BiomassGMCS is also run
+    #This line will return aNPPAct unchanged unless LandR_BiomassGMCS is also run
     subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + 
                                         assignClimateEffect(predObj,
                                                             subCohortData = subCohortData,

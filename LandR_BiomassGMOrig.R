@@ -147,6 +147,11 @@ MortalityAndGrowth <- function(sim) {
   for (subgroup in paste("Group", 1:(length(cutpoints) - 1), sep = "")) {
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
+    if (!is.null(predObj)) {
+    subPredObj <- predObj[pixelGroup %in% subCohortData$pixelGroup]
+    } else {
+      subPredObj <- NULL #predictions are subset by subCohort 
+    }
     set(subCohortData, NULL, "age", subCohortData$age + 1L)
     subCohortData <- updateSpeciesEcoregionAttributes(speciesEcoregion = sim$speciesEcoregion,
                                                       time = round(time(sim)),
@@ -209,7 +214,7 @@ MortalityAndGrowth <- function(sim) {
 
     #This line will return aNPPAct unchanged unless LandR_BiomassGMCS is also run
     subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + 
-                                        assignClimateEffect(predObj,
+                                        assignClimateEffect(subPredObj,
                                                             subCohortData = subCohortData,
                                                             type = "growthPred"))) 
     
@@ -220,7 +225,7 @@ MortalityAndGrowth <- function(sim) {
     
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
     subCohortData$mortality <- pmax(0, (subCohortData$mortality + 
-                                          assignClimateEffect(predObj, 
+                                          assignClimateEffect(subPredObj, 
                                                               subCohortData = subCohortData,
                                                               type = "mortPred")))
     

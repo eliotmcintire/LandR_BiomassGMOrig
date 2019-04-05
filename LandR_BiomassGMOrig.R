@@ -42,7 +42,7 @@ defineModule(sim, list(
                  succession time step",
                  sourceURL = NA),
     expectsInput("lastReg", "numeric",
-                 desc = "time at last regeneration", sourceURL = NA),
+                 desc = "an internal counter keeping track of when the last regeneration event occurred"),
     expectsInput("species", "data.table",
                  desc = "a table that has species traits such as longevity...",
                  sourceURL = "https://raw.githubusercontent.com/LANDIS-II-Foundation/Extensions-Succession-Archive/master/biomass-succession-archive/trunk/tests/v6.0-2.0/species.txt"),

@@ -212,7 +212,7 @@ MortalityAndGrowth <- function(sim) {
                                       centeringVec = sim$centeringVec) 
     
     #This line will return aNPPAct unchanged unless LandR_BiomassGMCS is also run
-    subCohortData$climGrowth <- assignClimateEffect(subPredObj, subCohortData = subCohortData, type = 'growthPred')
+    subCohortData$climGrowth <- assignClimateEffect(predObj, subCohortData = subCohortData, type = 'growthPred')
     subCohortData$aNPPAct <- pmax(0, subCohortData$aNPPAct + subCohortData$climGrowth)
     
     subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
@@ -222,7 +222,7 @@ MortalityAndGrowth <- function(sim) {
     
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
     
-    subCohortData$climMort <- assignClimateEffect(subPredObj, subCohortData = subCohortData, type = "mortPred")
+    subCohortData$climMort <- assignClimateEffect(predObj, subCohortData = subCohortData, type = "mortPred")
     subCohortData$mortality <- pmax(0, subCohortData$mortality + subCohortData$climMort)
     
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM", "climGrowth", "climMort"), NULL)

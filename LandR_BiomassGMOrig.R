@@ -119,17 +119,6 @@ MortalityAndGrowth <- function(sim) {
   calculateClimateEffect <- getFromNamespace("calculateClimateEffect", P(sim)$growthAndMortalityDrivers)
   assignClimateEffect <- getFromNamespace("assignClimateEffect", P(sim)$growthAndMortalityDrivers)
   
-  # NULL w/o module biomassGMCS. age-related mortality is included in this model
-  # 20/03/2019 IE: after discussion we determined it is acceptable to include age
-  #because 1) the Landis age-related mortality fxn is very different from this model, 
-  #and 2) because it would be difficult to separate the climate/age interaction 
-  predObj <- calculateClimateEffect(gcsModel = sim$gcsModel,
-                                    mcsModel = sim$mcsModel,
-                                    CMD = sim$CMD,
-                                    ATA = sim$ATA,
-                                    cohortData = sim$cohortData,
-                                    pixelGroupMap = sim$pixelGroupMap,
-                                    centeringVec = sim$centeringVec) 
   
   cohortData <- sim$cohortData
   sim$cohortData <- cohortData[0, ]
@@ -147,11 +136,7 @@ MortalityAndGrowth <- function(sim) {
   for (subgroup in paste("Group", 1:(length(cutpoints) - 1), sep = "")) {
     subCohortData <- cohortData[pixelGroup %in% pixelGroups[groups == subgroup, ]$pixelGroupIndex, ]
     #   cohortData <- sim$cohortData
-    if (!is.null(predObj)) {
-    subPredObj <- predObj[pixelGroup %in% subCohortData$pixelGroup]
-    } else {
-      subPredObj <- NULL #predictions are subset by subCohort 
-    }
+  
     set(subCohortData, NULL, "age", subCohortData$age + 1L)
     subCohortData <- updateSpeciesEcoregionAttributes(speciesEcoregion = sim$speciesEcoregion,
                                                       time = round(time(sim)),
@@ -207,16 +192,28 @@ MortalityAndGrowth <- function(sim) {
     if (!P(sim)$calibrate) {
       set(subCohortData, NULL, "sumB", NULL)
     }
+    
     #### the below two lines of codes are to calculate actual ANPP
     subCohortData <- calculateANPP(cohortData = subCohortData)
     set(subCohortData, NULL, "growthcurve", NULL)
     set(subCohortData, NULL, "aNPPAct", pmax(1, subCohortData$aNPPAct - subCohortData$mAge))
-
+    
+    #generate climate-sensitivity predictions
+    #NULL w/o module biomassGMCS. age-related mortality is included in this model
+    # 20/03/2019 IE: after discussion we determined it is acceptable to include age
+    #because 1) the Landis age-related mortality fxn is very different from this model, 
+    #and 2) because it would be difficult to separate the climate/age interaction 
+    predObj <- calculateClimateEffect(gcsModel = sim$gcsModel,
+                                      mcsModel = sim$mcsModel,
+                                      CMD = sim$CMD,
+                                      ATA = sim$ATA,
+                                      cohortData = subCohortData,
+                                      pixelGroupMap = sim$pixelGroupMap,
+                                      centeringVec = sim$centeringVec) 
+    
     #This line will return aNPPAct unchanged unless LandR_BiomassGMCS is also run
-    subCohortData$aNPPAct <- pmax(0, (subCohortData$aNPPAct + 
-                                        assignClimateEffect(subPredObj,
-                                                            subCohortData = subCohortData,
-                                                            type = "growthPred"))) 
+    subCohortData$climGrowth <- assignClimateEffect(subPredObj, subCohortData = subCohortData, type = 'growthPred')
+    subCohortData$aNPPAct <- pmax(0, subCohortData$aNPPAct + subCohortData$climGrowth)
     
     subCohortData <- calculateGrowthMortality(cohortData = subCohortData)
     set(subCohortData, NULL, "mBio", pmax(0, subCohortData$mBio - subCohortData$mAge))
@@ -224,12 +221,11 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
     
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
-    subCohortData$mortality <- pmax(0, (subCohortData$mortality + 
-                                          assignClimateEffect(subPredObj, 
-                                                              subCohortData = subCohortData,
-                                                              type = "mortPred")))
     
-    set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM"), NULL)
+    subCohortData$climMort <- assignClimateEffect(subPredObj, subCohortData = subCohortData, type = "mortPred")
+    subCohortData$mortality <- pmax(0, subCohortData$mortality + subCohortData$climMort)
+    
+    set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM", "climGrowth", "climMort"), NULL)
     if (P(sim)$calibrate) {
       set(subCohortData, NULL, "deltaB", asInteger(subCohortData$aNPPAct - subCohortData$mortality))
       set(subCohortData, NULL, "B", subCohortData$B + subCohortData$deltaB)

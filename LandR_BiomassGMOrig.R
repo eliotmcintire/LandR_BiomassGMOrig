@@ -221,9 +221,10 @@ MortalityAndGrowth <- function(sim) {
     set(subCohortData, NULL, "mortality", subCohortData$mBio + subCohortData$mAge)
     
     #This line will return mortality unchanged unless LandR_BiomassGMCS is also run
-    
     subCohortData$climMort <- pmax(0, assignClimateEffect(predObj, subCohortData = subCohortData, type = "mortPred"))
     subCohortData$mortality <- subCohortData$mortality + subCohortData$climMort
+    #Ian added this check
+    subCohortData$mortality <- pmin(subCohortData$mortality, subCohortData$B)
     
     set(subCohortData, NULL, c("mBio", "mAge", "maxANPP", "maxB", "maxB_eco", "bAP", "bPM", "climGrowth", "climMort"), NULL)
     if (P(sim)$calibrate) {

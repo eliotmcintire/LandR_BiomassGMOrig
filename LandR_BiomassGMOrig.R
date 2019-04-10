@@ -205,7 +205,7 @@ MortalityAndGrowth <- function(sim) {
     #and 2) because it would be difficult to separate the climate/age interaction 
     predObj <- calculateClimateEffect(gcsModel = sim$gcsModel,
                                       mcsModel = sim$mcsModel,
-                                      CMD = sim$CMD,
+                                      CMI = sim$CMI,
                                       ATA = sim$ATA,
                                       cohortData = subCohortData,
                                       pixelGroupMap = sim$pixelGroupMap,

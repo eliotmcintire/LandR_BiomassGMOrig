@@ -27,10 +27,11 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", default = 0, min = NA, max = NA,
                     desc = paste("This describes the simulation time at which the first save event should occur.",
                                  "Set to NA if no saving is desired.")),
-    defineParameter(".useParallel", "ANY", default = parallel::detectCores(),
-                    desc = paste("Used only in seed dispersal. If numeric, it will be passed to data.table::setDTthreads,",
-                                 "if logical and TRUE, it will be passed to parallel::makeCluster,",
-                                 "and if cluster object it will be passed to parallel::parClusterApplyLB"))
+    defineParameter(".useParallel", "ANY", default = 2,
+                    desc = paste("Used only in seed dispersal.",
+                                 "If numeric, it will be passed to data.table::setDTthreads and should be <= 2;",
+                                 "if logical and TRUE, it will be passed to parallel::makeCluster;",
+                                 "and if cluster object it will be passed to parallel::parClusterApplyLB."))
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),

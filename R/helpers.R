@@ -76,13 +76,19 @@ calculateSumB <- function(cohortData, lastReg, simuTime, successionTimestep) {
     set(subCohortData, NULL, "sumB", 0L)
     if (simuTime == lastReg + successionTimestep - 2) {
       sumBtable <- subCohortData[age > successionTimestep,
-                                 .(tempsumB = asInteger(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = sum(B, na.rm = TRUE)), by = pixelGroup]
     } else {
       sumBtable <- subCohortData[age >= successionTimestep,
-                                 .(tempsumB = asInteger(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = sum(B, na.rm = TRUE)), by = pixelGroup]
     }
+    if (!is.integer(sumBtable$tempSumB))
+      set(sumBtable, NULL, "tempSumB", asInteger(sumBtable$tempSumB))
+
     subCohortData <- merge(subCohortData, sumBtable, by = "pixelGroup", all.x = TRUE)
     subCohortData[is.na(tempsumB), tempsumB := 0L][, ':='(sumB = tempsumB, tempsumB = NULL)]
+    if (!is.integer(subCohortData$sumB))
+      set(subCohortData, NULL, "sumB", asInteger(subCohortData$sumB))
+
     if (subgroup == "Group1") {
       newcohortData <- subCohortData
     } else {
@@ -109,15 +115,14 @@ calculateSumB <- function(cohortData, lastReg, simuTime, successionTimestep) {
 calculateAgeMortality <- function(cohortData, stage = "nonSpinup", spinupMortalityfraction) {
   # for age-related mortality calculation
   if (stage == "spinup") {
-    cohortData[age > 0, mAge := B*(exp((age) / longevity*mortalityshape) / exp(mortalityshape))]
-    cohortData[age > 0, mAge := mAge+B*spinupMortalityfraction]
+    cohortData[age > 0, mAge := B * (exp((age) / longevity*mortalityshape) / exp(mortalityshape))]
+    cohortData[age > 0, mAge := mAge + B * spinupMortalityfraction]
     cohortData[age > 0, mAge := pmin(B, mAge)]
   } else {
     set(cohortData, NULL, "mAge",
         cohortData$B * (exp((cohortData$age) / cohortData$longevity * cohortData$mortalityshape) /
                           exp(cohortData$mortalityshape)))
-    set(cohortData, NULL, "mAge",
-        pmin(cohortData$B,cohortData$mAge))
+    set(cohortData, NULL, "mAge", pmin(cohortData$B,cohortData$mAge))
   }
   return(cohortData)
 }
@@ -135,15 +140,13 @@ calculateAgeMortality <- function(cohortData, stage = "nonSpinup", spinupMortali
 #' @importFrom data.table set
 calculateANPP <- function(cohortData, stage = "nonSpinup") {
   if (stage == "spinup") {
-    cohortData[age > 0, aNPPAct := maxANPP * exp(1) * (bAP^growthcurve) *
-                 exp(-(bAP^growthcurve)) * bPM]
+    cohortData[age > 0, aNPPAct := maxANPP * exp(1) * (bAP^growthcurve) * exp(-(bAP^growthcurve)) * bPM]
     cohortData[age > 0, aNPPAct := pmin(maxANPP * bPM, aNPPAct)]
   } else {
     set(cohortData, NULL, "aNPPAct",
         cohortData$maxANPP * exp(1) * (cohortData$bAP^cohortData$growthcurve) *
           exp(-(cohortData$bAP^cohortData$growthcurve)) * cohortData$bPM)
-    set(cohortData, NULL, "aNPPAct",
-        pmin(cohortData$maxANPP*cohortData$bPM,cohortData$aNPPAct))
+    set(cohortData, NULL, "aNPPAct", pmin(cohortData$maxANPP*cohortData$bPM,cohortData$aNPPAct))
   }
   return(cohortData)
 }
@@ -169,10 +172,8 @@ calculateGrowthMortality <- function(cohortData, stage = "nonSpinup") {
   } else {
     cohortData[bAP %>>% 1.0, mBio := maxANPP*bPM]
     cohortData[bAP %<=% 1.0, mBio := maxANPP*(2*bAP)/(1 + bAP)*bPM]
-    set(cohortData, NULL, "mBio",
-        pmin(cohortData$B, cohortData$mBio))
-    set(cohortData, NULL, "mBio",
-        pmin(cohortData$maxANPP*cohortData$bPM, cohortData$mBio))
+    set(cohortData, NULL, "mBio", pmin(cohortData$B, cohortData$mBio))
+    set(cohortData, NULL, "mBio", pmin(cohortData$maxANPP*cohortData$bPM, cohortData$mBio))
   }
   return(cohortData)
 }

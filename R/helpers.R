@@ -76,13 +76,13 @@ calculateSumB <- function(cohortData, lastReg, simuTime, successionTimestep) {
     set(subCohortData, NULL, "sumB", 0L)
     if (simuTime == lastReg + successionTimestep - 2) {
       sumBtable <- subCohortData[age > successionTimestep,
-                                 .(tempsumB = as.integer(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = asInteger(sum(B, na.rm=TRUE))), by = pixelGroup]
     } else {
       sumBtable <- subCohortData[age >= successionTimestep,
-                                 .(tempsumB = as.integer(sum(B, na.rm=TRUE))), by = pixelGroup]
+                                 .(tempsumB = asInteger(sum(B, na.rm=TRUE))), by = pixelGroup]
     }
     subCohortData <- merge(subCohortData, sumBtable, by = "pixelGroup", all.x = TRUE)
-    subCohortData[is.na(tempsumB), tempsumB := as.integer(0L)][, ':='(sumB = tempsumB, tempsumB = NULL)]
+    subCohortData[is.na(tempsumB), tempsumB := 0L][, ':='(sumB = tempsumB, tempsumB = NULL)]
     if (subgroup == "Group1") {
       newcohortData <- subCohortData
     } else {
